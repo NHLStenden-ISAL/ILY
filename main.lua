@@ -38,35 +38,62 @@ world.singletons.camera = {
     y = 200,
     scale = 1,
 }
+world.singletons.textOutput = {}
+world.singletons.codeElementsSequence = {
+    root = nil
+}
 
 world:addSystems(
-    systems.textRenderer,
     systems.codeInserter,
-    systems.cameraController
+    systems.cameraController,
+    systems.codeElementSequenceUpdater,
+    systems.textTransformer,
+    systems.textRenderer
 )
 
 local e = ecs.entity()
-e:give("identifier", "test")
-e:give("structData", {
+:give("codeElement", "test")
+:give("structData", {
     {name = "test", type = "number"}
 })
+:give("visible")
+
 
 local e2 = ecs.entity()
-e2:give("identifier", "test2")
-e2:give("structData", {
+:give("codeElement", "test2")
+:give("structData", {
     {name = "test", type = "number"}
 })
+:give("visible")
 
 local e3 = ecs.entity()
-e3:give("identifier", "test3")
-e3:give("structData", {
+:give("codeElement", "test3")
+:give("structData", {
     {name = "test", type = "number"},
-    {name = "foo", type = "bar"}
+    {name = "foo", type = "bar"},
 })
+:give("visible")
 
 local e4 = ecs.entity()
-e4:give("identifier", "test3")
-e4:give("functionData")
+:give("codeElement", "fntest3")
+:give("functionData")
+:give("visible")
+
+e.codeElement.prev = {prev = nil, next = e}
+
+local eto2 = {prev = e, next = e2}
+e.codeElement.next = eto2
+e2.codeElement.prev = eto2
+
+local e2toe3 = {prev = e2, next = e3}
+e2.codeElement.next = e2toe3
+e3.codeElement.prev = e2toe3
+
+local e3toe4  = {prev = e3, next = e4}
+e3.codeElement.next = e3toe4
+e4.codeElement.prev = e3toe4
+
+e4.codeElement.next = {prev = e4, next = nil}
 
 world:addEntity(e)
 world:addEntity(e2)
@@ -82,6 +109,7 @@ function love.update(dt)
     world.singletons.indentDepth = math.max(0, world.singletons.indentDepth + world.singletons.scrollVelocity * dt)
 
     world:emit("update", dt)
+    world:emit("transformDataToText")
 end
 
 function love.draw()
@@ -93,12 +121,36 @@ function love.keypressed(key)
 
     if (key == "1") then
         world.singletons.detail = "full"
+        world:emit("transformDataToText")
     end
     if (key == "2") then
         world.singletons.detail = "part"
+        world:emit("transformDataToText")
     end
     if (key == "3") then
         world.singletons.detail = "structure"
+        world:emit("transformDataToText")
+    end
+    if (key == "4") then
+        e:remove("codeElement")
+    end
+    
+
+    if (key == "5") then
+        local e = world.singletons.codeElementsSequence.root
+        print("Root: " ..e.codeElement.identifier)
+
+        while (e) do
+            e = world.singletons.codeElementsSequence[e]
+
+            if (e) then
+                print(e.codeElement.identifier)
+            end
+        end 
+    end
+
+    if (key == "6") then
+        love.event.quit("restart")
     end
 end
 
@@ -109,7 +161,9 @@ end
 function love.wheelmoved(x, y)
     if (love.keyboard.isDown("lshift")) then
         world.singletons.scrollVelocity = world.singletons.scrollVelocity + y * 60
+        
     else
         world:emit("wheelmoved", x, y)
+        world:emit("transformDataToText")
     end
 end
