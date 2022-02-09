@@ -18,7 +18,6 @@ function love.errorhandler(msg)
     end
 end
 
-love.graphics.setNewFont("assets/FiraCode-Regular.ttf", 24)
 love.graphics.setBackgroundColor(0.15, 0.15, 0.15, 1.0)
 
 ecs = require("lib.concord")
@@ -36,70 +35,99 @@ world.singletons.scrollVelocity = 0
 world.singletons.camera = {
     x = 200,
     y = 200,
-    scale = 1,
+    scale = 24,
 }
 world.singletons.textOutput = {}
-world.singletons.codeElementsSequence = {
-    root = nil
+world.singletons.selectors = {}
+world.singletons.cursor = {
+    selected = nil
+}
+world.singletons.animationTimer = {
+    timer = 0
 }
 
 world:addSystems(
-    systems.codeInserter,
+    -- systems.codeInserter,
     systems.cameraController,
-    systems.codeElementSequenceUpdater,
+    systems.textElementEditor,
     systems.textTransformer,
+    systems.cursor,
     systems.textRenderer
 )
 
-local e = ecs.entity()
-:give("codeElement", "test")
-:give("structData", {
-    {name = "test", type = "number"}
-})
-:give("visible")
+local typeNumber = ecs.entity()
+:give("codeElement", "number")
+world:addEntity(typeNumber)
 
+local typeBoolean = ecs.entity()
+:give("codeElement", "boolean")
+world:addEntity(typeBoolean)
 
-local e2 = ecs.entity()
-:give("codeElement", "test2")
-:give("structData", {
-    {name = "test", type = "number"}
-})
-:give("visible")
+local typeString = ecs.entity()
+:give("codeElement", "string")
+world:addEntity(typeString)
 
-local e3 = ecs.entity()
-:give("codeElement", "test3")
-:give("structData", {
-    {name = "test", type = "number"},
-    {name = "foo", type = "bar"},
-})
-:give("visible")
+local foo
 
-local e4 = ecs.entity()
-:give("codeElement", "fntest3")
-:give("functionData")
-:give("visible")
+do
+    local e = ecs.entity()
+    :give("codeElement", "foo")
+    :give("struct", {})
+    :give("visible")
+    world:addEntity(e)
 
-e.codeElement.prev = {prev = nil, next = e}
+    do
+        local field = ecs.entity()
+        :give("codeElement", "a")
+        :give("field", typeNumber)
+        -- :give("selected")
+        world:addEntity(field)
 
-local eto2 = {prev = e, next = e2}
-e.codeElement.next = eto2
-e2.codeElement.prev = eto2
+        table.insert(e.struct.fields, field)
+    end
 
-local e2toe3 = {prev = e2, next = e3}
-e2.codeElement.next = e2toe3
-e3.codeElement.prev = e2toe3
+    do
+        local field = ecs.entity()
+        :give("codeElement", "b")
+        :give("field", typeString)
+        -- :give("selected")
+        world:addEntity(field)
 
-local e3toe4  = {prev = e3, next = e4}
-e3.codeElement.next = e3toe4
-e4.codeElement.prev = e3toe4
+        table.insert(e.struct.fields, field)
+    end
 
-e4.codeElement.next = {prev = e4, next = nil}
+    foo = e
+end
 
-world:addEntity(e)
-world:addEntity(e2)
-world:addEntity(e3)
-world:addEntity(e4)
+-- do
+--     local e = ecs.entity()
+--     :give("codeElement", "bar")
+--     :give("struct", {})
+--     :give("visible")
+--     world:addEntity(e)
 
+--     local field = ecs.entity()
+--     :give("codeElement", "c")
+--     :give("field", foo)
+--     world:addEntity(field)
+
+--     table.insert(e.struct.fields, field)
+-- end
+
+-- do
+--     local e = ecs.entity()
+--     :give("codeElement", "qux")
+--     :give("struct", {})
+--     :give("visible")
+--     world:addEntity(e)
+
+--     local field = ecs.entity()
+--     :give("codeElement", "d")
+--     :give("field", foo)
+--     world:addEntity(field)
+
+--     table.insert(e.struct.fields, field)
+-- end
 
 function love.update(dt)
     local friction = 10;
@@ -109,7 +137,6 @@ function love.update(dt)
     world.singletons.indentDepth = math.max(0, world.singletons.indentDepth + world.singletons.scrollVelocity * dt)
 
     world:emit("update", dt)
-    world:emit("transformDataToText")
 end
 
 function love.draw()
@@ -117,41 +144,25 @@ function love.draw()
 end
 
 function love.keypressed(key)
-    world:emit("keypressed", key)
-
     if (key == "1") then
         world.singletons.detail = "full"
-        world:emit("transformDataToText")
+        return;
     end
     if (key == "2") then
         world.singletons.detail = "part"
-        world:emit("transformDataToText")
+        return;
     end
     if (key == "3") then
         world.singletons.detail = "structure"
-        world:emit("transformDataToText")
-    end
-    if (key == "4") then
-        e:remove("codeElement")
-    end
-    
-
-    if (key == "5") then
-        local e = world.singletons.codeElementsSequence.root
-        print("Root: " ..e.codeElement.identifier)
-
-        while (e) do
-            e = world.singletons.codeElementsSequence[e]
-
-            if (e) then
-                print(e.codeElement.identifier)
-            end
-        end 
+        return;
     end
 
     if (key == "6") then
         love.event.quit("restart")
+        return;
     end
+
+    world:emit("keypressed", key)
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -161,9 +172,46 @@ end
 function love.wheelmoved(x, y)
     if (love.keyboard.isDown("lshift")) then
         world.singletons.scrollVelocity = world.singletons.scrollVelocity + y * 60
-        
     else
         world:emit("wheelmoved", x, y)
-        world:emit("transformDataToText")
     end
 end
+
+function love.textinput(t)
+    if (tonumber(t) ~= nil) then
+        return
+    end
+
+    world:emit("textinput", t)
+end
+
+
+
+-- local lines = love.filesystem.lines("src/locale.txt")
+-- local t = {}
+-- local data = ""
+
+-- for line in lines do
+--     table.insert(t, line)
+-- end
+
+-- data = data..("locale = {\r\n")
+-- data = data..("\tukToUs={\r\n")
+-- for i = 1, #t/2 do
+--     local uk = t[i]
+--     local us = t[i + #t/2]
+
+--     data = data..("\t\t"..uk.."=".."\""..us.."\",\r\n")
+-- end
+-- data = data..("}\r\n")
+-- data = data..("\tusToUk={\r\n")
+-- for i = 1, #t/2 do
+--     local uk = t[i]
+--     local us = t[i + #t/2]
+
+--     data = data..("\t\t"..us.."=".."\""..uk.."\",\r\n")
+-- end
+-- data = data..("}\r\n")
+-- data = data..("}\r\n")
+
+-- love.filesystem.write("output.lua", data)

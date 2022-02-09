@@ -1,48 +1,89 @@
+local BaseTextTransformer = require("src.textTransformers.baseTextTransformer")
+local FunkyTextTransformer = require("src.textTransformers.funkyTextTransformer")
+local WeirdBrachesTextTransformer = require("src.textTransformers.weirdBrachesTextTransformer")
+
 local TextTransformer = ecs.system({
     pool = {"codeElement", "visible"},
+    old = {"textElement"}
 })
 
-local cursor = {
-    x = 0,
-    y = 0,
-}
-
-local colors = {
-    text = {1.0, 1.0, 1.0, 1.0},
-    keywordStruct = {115/255, 170/255, 213/255, 1.0},
-    field = {156/255, 196/255, 124/255, 1.0},
-    type = {236/255, 92/255, 100/255, 1.0}
-}
-
-local function textTransform(content, position, color)
-    return {
-        content = content,
-        position = position,
-        color = color or colors.text,
-    }
-end
-
 function TextTransformer:init()
-    self.pool.onAdded = function(pool, e)
-        self:transformDataToText()
-    end
+    self.dirty = false
 
-    self.pool.onRemoved = function(pool, e)
-        self:transformDataToText()
-    end
+    self.pool.onAdded = function(pool, e) self.dirty = true end
+    self.pool.onRemoved = function(pool, e) self.dirty = true end
 
     self.cursor = {x = 0, y = 0}
-    self.output = { }
+    self.output = {}
+
+    self.identifierTree = {}
+    self.currentIdentifierScope = {self.identifierTree}
+
+    self.previousIdentifierTree = {}
+    self.previousIdentifierScope = {}
+
+    self.previousSelectable = nil
+
+    self.textTransformer = BaseTextTransformer(self)
+
+    self.toDelete = {}
 end
 
-function TextTransformer:print(text, color)
+function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
+    local scope = {}
+    self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
+    self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
+
+    local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][identifier]
+    if (previous) then
+        self.previousIdentifierScope[#self.previousIdentifierScope + 1] = previous
+    end
+
+    func(textTransformer, element, ...)
+
+    if (previous) then
+        self.previousIdentifierScope[#self.previousIdentifierScope] = nil
+    end
+    self.currentIdentifierScope[#self.currentIdentifierScope] = nil
+end
+
+function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement)
+    local previousScope = self.previousIdentifierScope[#self.previousIdentifierScope]
+
+    if (previousScope and previousScope[rawIdentifier]) then
+        local e = previousScope[rawIdentifier]
+
+        e.textElement.text = text
+        e.textElement.oldPosition = e.textElement.position
+        e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
+        e.textElement.color = color
+
+        self.toDelete[e] = nil
+        print("updated", rawIdentifier)
+    else
+        local position = {x = self.cursor.x, y = self.cursor.y}
+
+        local e = ecs.entity()
+        e:give("textElement", text, position, color)
+
+        self:getWorld():addEntity(e)
+
+        self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
+
+        print("made", rawIdentifier)
+    end
+
+    -- if (selectableCodeElement) then
+    --     e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
+
+    --     if (self.previousSelectable) then
+    --         self.previousSelectable.selectable.next = e
+    --     end
+
+    --     self.previousSelectable = e
+    -- end
+
     local font = love.graphics.getFont()
-
-    table.insert(self.output, textTransform(text, {
-        x = self.cursor.x,
-        y = self.cursor.y,
-    }, color))
-
     self.cursor.x = self.cursor.x + font:getWidth(text)
 end
 
@@ -52,7 +93,17 @@ function TextTransformer:space()
 end
 
 function TextTransformer:indent()
-    self.cursor.x = self.cursor.x + self:getWorld().singletons.indentDepth
+    local font = love.graphics.getFont()
+    local fraction = font:getWidth(" ") * 0.1
+
+    self.cursor.x = self.cursor.x + (self:getWorld().singletons.indentDepth * fraction)
+end
+
+function TextTransformer:outdent()
+    local font = love.graphics.getFont()
+    local fraction = font:getWidth(" ") * 0.1
+
+    self.cursor.x = self.cursor.x - (self:getWorld().singletons.indentDepth * fraction)
 end
 
 function TextTransformer:newLine()
@@ -65,79 +116,62 @@ function TextTransformer:reset()
     self.cursor.x = 0
     self.cursor.y = 0
 
+    self.depth = 0
+
     self.output = {}
+
+    self.previousIdentifierTree = self.identifierTree
+    self.previousIdentifierScope = {self.previousIdentifierTree}
+
+    self.identifierTree = {}
+    self.currentIdentifierScope = {self.identifierTree}
+
+    for _, e in ipairs(self.old) do
+        self.toDelete[e] = true
+    end
+end
+
+function TextTransformer:update(dt)
+    self:getWorld().singletons.animationTimer.timer = self:getWorld().singletons.animationTimer.timer + dt
+
+    if (self.dirty) then
+        self.dirty = false
+        self:transformDataToText()
+    end
+end
+
+function TextTransformer:keypressed(key)
+    self:getWorld().singletons.animationTimer.timer = 0
+
+    print('----')
+
+    if (key == "[") then
+        self.textTransformer = BaseTextTransformer(self)
+        self:transformDataToText()
+    end
+
+    if (key == "]") then
+        self.textTransformer = FunkyTextTransformer(self)
+        self:transformDataToText()
+    end
+
+    if (key == "=") then
+        self.textTransformer = WeirdBrachesTextTransformer(self)
+        self:transformDataToText()
+    end
 end
 
 function TextTransformer:transformDataToText()
     self:reset()
 
+    self.textTransformer:transform(self.pool)
 
-    for _, e in ipairs(self.pool) do
-        if (e:has("structData")) then
-            self:__transformStruct(e)
-        end
-
-        if (e:has("functionData")) then
-            self:__transformFunction(e)
-        end
+    for e, _ in pairs(self.toDelete) do
+        e:destroy()
     end
+    self.toDelete = {}
 
     self:getWorld().singletons.textOutput = self.output
-end
-
-function TextTransformer:__transformStruct(e)
-    self:print("struct", colors.keywordStruct)
-    self:space()
-    self:print(e.codeElement.identifier)
-
-    if self:getWorld().singletons.detail == "part" or self:getWorld().singletons.detail == "full" then
-        self:space()
-        self:print("{")
-        self:newLine()
-
-        local maxChars = 0
-        for _, field in ipairs(e.structData.fields) do
-            maxChars = math.max(maxChars, #field.name)
-        end
-
-        for _, field in ipairs(e.structData.fields) do
-            if self:getWorld().singletons.detail == "full" then
-                self:indent()
-                self:print(field.name, colors.field)
-                for i = 0, (maxChars - #field.name) do
-                    self:space()
-                end
-                self:print(":")
-                self:space()
-                self:print(field.type, colors.type)
-                self:print(";")
-                self:newLine()
-            else
-                self:indent()
-                self:print("...", colors.field)
-                self:newLine()
-            end
-        end
-        self:print("}")
-    end
-
-    self:newLine()
-    self:newLine()
-end
-
-function TextTransformer:__transformFunction(e)
-    self:print("fn", colors.keywordStruct)
-    self:space()
-    self:print(e.codeElement.identifier)
-    self:print("(")
-    self:print(")")
-    self:space()
-    self:print("{")
-    self:newLine()
-    self:newLine()
-    self:print("}")
-    self:newLine()
-    self:newLine()
 end
 
 return TextTransformer
