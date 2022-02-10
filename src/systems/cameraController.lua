@@ -18,6 +18,7 @@ function CameraController:wheelmoved(dx, dy)
         self:getWorld().singletons.camera.scale = math.max(4, self:getWorld().singletons.camera.scale + dy)
         self:updateFont()
 
+        self:getWorld():emit("transformDataToText")
     else
         self:getWorld().singletons.camera.y = self:getWorld().singletons.camera.y + (dy * 30)
     end

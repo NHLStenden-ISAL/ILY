@@ -129,6 +129,41 @@ do
     table.insert(e.struct.fields, field)
 end
 
+do
+    local e = ecs.entity()
+    :give("codeElement", "quux")
+    :give("struct", {})
+    :give("visible")
+    world:addEntity(e)
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "e")
+        :give("field", typeString)
+        world:addEntity(field)
+
+        table.insert(e.struct.fields, field)
+    end
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "f")
+        :give("field", typeBoolean)
+        world:addEntity(field)
+
+        table.insert(e.struct.fields, field)
+    end
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "g")
+        :give("field", typeNumber)
+        world:addEntity(field)
+
+        table.insert(e.struct.fields, field)
+    end
+end
+
 function love.update(dt)
     local friction = 10;
     local ratio = 1 / (1 + (dt * friction));

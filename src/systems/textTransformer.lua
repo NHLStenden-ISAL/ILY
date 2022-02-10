@@ -38,7 +38,7 @@ end
 function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
     identifier = "codeElement-"..tostring(identifier)
     
-    local scope = {}
+    local scope = self.currentIdentifierScope[#self.currentIdentifierScope][identifier] or {}
     self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
     self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
 
@@ -68,6 +68,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         e.textElement.oldPosition = e.textElement.position
         e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
         e.textElement.color = color
+        e.textElement.new = false
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
         self.toDelete[e] = nil
@@ -77,6 +78,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
 
         local e = ecs.entity()
         e:give("textElement", text, position, color)
+        e.textElement.new = true
 
         self:getWorld():addEntity(e)
 
@@ -174,6 +176,7 @@ function TextTransformer:keypressed(key)
 end
 
 function TextTransformer:transformDataToText()
+    print("doing a transform")
     self:reset()
 
     self.textTransformer:transform(self.pool)
