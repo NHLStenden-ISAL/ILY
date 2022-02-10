@@ -99,35 +99,35 @@ do
     foo = e
 end
 
--- do
---     local e = ecs.entity()
---     :give("codeElement", "bar")
---     :give("struct", {})
---     :give("visible")
---     world:addEntity(e)
+do
+    local e = ecs.entity()
+    :give("codeElement", "bar")
+    :give("struct", {})
+    :give("visible")
+    world:addEntity(e)
 
---     local field = ecs.entity()
---     :give("codeElement", "c")
---     :give("field", foo)
---     world:addEntity(field)
+    local field = ecs.entity()
+    :give("codeElement", "c")
+    :give("field", foo)
+    world:addEntity(field)
 
---     table.insert(e.struct.fields, field)
--- end
+    table.insert(e.struct.fields, field)
+end
 
--- do
---     local e = ecs.entity()
---     :give("codeElement", "qux")
---     :give("struct", {})
---     :give("visible")
---     world:addEntity(e)
+do
+    local e = ecs.entity()
+    :give("codeElement", "qux")
+    :give("struct", {})
+    :give("visible")
+    world:addEntity(e)
 
---     local field = ecs.entity()
---     :give("codeElement", "d")
---     :give("field", foo)
---     world:addEntity(field)
+    local field = ecs.entity()
+    :give("codeElement", "d")
+    :give("field", foo)
+    world:addEntity(field)
 
---     table.insert(e.struct.fields, field)
--- end
+    table.insert(e.struct.fields, field)
+end
 
 function love.update(dt)
     local friction = 10;

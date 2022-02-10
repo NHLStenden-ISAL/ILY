@@ -4,6 +4,18 @@ local function lerp(a, b, t)
 	return a + (b - a) * t
 end
 
+local function outCubic(t, b, c, d) return c * (math.pow(t / d - 1, 3) + 1) + b end
+
+local function clamp(v, min, max)
+    if (min > max) then
+        local temp = min
+        min = max
+        max = min
+    end
+
+
+    return math.max(min, math.min(max, v))
+end
 
 function TextRenderer:draw()
     love.graphics.push("all")
@@ -33,10 +45,14 @@ function TextRenderer:draw()
         local newx = e.textElement.position.x
         local newy = e.textElement.position.y
 
-        local t = math.min(1, self:getWorld().singletons.animationTimer.timer / 0.1)
+        -- local t = math.min(1, self:getWorld().singletons.animationTimer.timer / 0.2)
 
-        local x = lerp(oldx, newx, t)
-        local y = lerp(oldy, newy, t)
+        local t = self:getWorld().singletons.animationTimer.timer
+        local maxt = 0.2
+        -- local x = lerp(oldx, newx, t)
+        -- local y = lerp(oldy, newy, t)
+        local x = outCubic(math.min(t, maxt), oldx, newx - oldx, maxt)
+        local y = outCubic(math.min(t, maxt), oldy, newy - oldy, maxt)
 
         if (e:has("selectable")) then
             local width = font:getWidth(e.textElement.content)

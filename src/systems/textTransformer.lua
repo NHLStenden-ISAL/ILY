@@ -2,6 +2,8 @@ local BaseTextTransformer = require("src.textTransformers.baseTextTransformer")
 local FunkyTextTransformer = require("src.textTransformers.funkyTextTransformer")
 local WeirdBrachesTextTransformer = require("src.textTransformers.weirdBrachesTextTransformer")
 
+local Stack = require("src.datastructures.stack")
+
 local TextTransformer = ecs.system({
     pool = {"codeElement", "visible"},
     old = {"textElement"}
@@ -18,9 +20,13 @@ function TextTransformer:init()
 
     self.identifierTree = {}
     self.currentIdentifierScope = {self.identifierTree}
+    -- self.currentIdentifierScope = Stack()
+    -- self.currentIdentifierScope.push(self.identifierTree)
+
 
     self.previousIdentifierTree = {}
     self.previousIdentifierScope = {}
+    -- self.previousIdentifierScope = Stack()
 
     self.previousSelectable = nil
 
@@ -30,13 +36,18 @@ function TextTransformer:init()
 end
 
 function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
+    identifier = "codeElement-"..tostring(identifier)
+    
     local scope = {}
     self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
     self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
 
+
     local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][identifier]
     if (previous) then
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = previous
+    else
+        self.previousIdentifierScope[#self.previousIdentifierScope + 1] = {}
     end
 
     func(textTransformer, element, ...)
@@ -58,6 +69,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
         e.textElement.color = color
 
+        self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
         self.toDelete[e] = nil
         print("updated", rawIdentifier)
     else

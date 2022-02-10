@@ -11,7 +11,7 @@ end
 function BaseTextTransformer:transform(codeElements)
     for _, codeElement in ipairs(codeElements) do
         if (codeElement:has("struct")) then
-            self.control:scoped(self, codeElement.codeElement.identifier, codeElement, self.transformStruct)
+            self.control:scoped(self, codeElement.codeElement.id, codeElement, self.transformStruct)
             self.control:newLine()
         end
     end
@@ -26,7 +26,7 @@ function BaseTextTransformer:transformStruct(e)
     self.control:newLine()
     for _, field in ipairs(e.struct.fields) do
         self.control:indent()
-        self.control:scoped(self, field.codeElement.identifier, field, self.transformStructField)
+        self.control:scoped(self, field.codeElement.id, field, self.transformStructField)
         self.control:newLine()
     end
     self.control:print("closeBrace", "}", Colors.syntax.text)

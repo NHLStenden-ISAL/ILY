@@ -11,7 +11,7 @@ end
 function FunkyTextTransformer:transform(codeElements)
     for _, codeElement in ipairs(codeElements) do
         if (codeElement:has("struct")) then
-            self.control:scoped(self, codeElement.codeElement.identifier, codeElement, self.transformStruct)
+            self.control:scoped(self, codeElement.codeElement.id, codeElement, self.transformStruct)
         end
     end
 
@@ -20,7 +20,7 @@ function FunkyTextTransformer:transform(codeElements)
     for _, codeElement in ipairs(codeElements) do
         if (codeElement:has("struct")) then
             
-            self.control:scoped(self, codeElement.codeElement.identifier, codeElement, self.transformStuctData)
+            self.control:scoped(self, codeElement.codeElement.id, codeElement, self.transformStuctData)
             self.control:newLine()
         end
     end
@@ -36,7 +36,7 @@ end
 
 function FunkyTextTransformer:transformStuctData(struct)
     for _, field in ipairs(struct.struct.fields) do
-        self.control:scoped(self, field.codeElement.identifier, field, self.transformStructField, struct)
+        self.control:scoped(self, field.codeElement.id, field, self.transformStructField, struct)
         self.control:newLine()
     end
 end

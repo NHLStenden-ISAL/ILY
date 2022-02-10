@@ -11,7 +11,7 @@ end
 function WeirdBrachesTextTransformer:transform(codeElements)
     for _, codeElement in ipairs(codeElements) do
         if (codeElement:has("struct")) then
-            self.control:scoped(self, codeElement.codeElement.identifier, codeElement, self.transformStruct)
+            self.control:scoped(self, codeElement.codeElement.id, codeElement, self.transformStruct)
             self.control:newLine()
         end
     end
@@ -26,19 +26,20 @@ function WeirdBrachesTextTransformer:transformStruct(e)
     self.control:newLine()
     for _, field in ipairs(e.struct.fields) do
         self.control:indent()
-        self.control:scoped(self, field.codeElement.identifier, field, self.transformStructField)
+        self.control:scoped(self, field.codeElement.id, field, self.transformStructField)
         self.control:newLine()
     end
     self.control:print("closeBrace", "}", Colors.syntax.text)
+    self.control:print("terminator", ";", Colors.syntax.text)
     self.control:newLine()
 end
 
 function WeirdBrachesTextTransformer:transformStructField(field)
-    self.control:print("identifier", field.codeElement.identifier, Colors.syntax.field)
+    self.control:print("type", field.field.type.codeElement.identifier, Colors.syntax.type)
     self.control:space()
     self.control:print("typeIndicator", ":", Colors.syntax.text)
     self.control:space()
-    self.control:print("type", field.field.type.codeElement.identifier, Colors.syntax.type)
+    self.control:print("identifier", field.codeElement.identifier, Colors.syntax.field)
     self.control:print("terminator", ";", Colors.syntax.text)
 end
 
