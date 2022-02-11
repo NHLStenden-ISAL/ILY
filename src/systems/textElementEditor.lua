@@ -17,8 +17,6 @@ function TextElementEditor:keypressed(key)
             codeElement.identifier = string.sub(codeElement.identifier, 0, #codeElement.identifier - 1)
             self:getWorld():emit("codeElementChanged", e)
         end
-
-        
     end
 end
 

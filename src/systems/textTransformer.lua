@@ -33,6 +33,8 @@ function TextTransformer:init()
     self.textTransformer = BaseTextTransformer(self)
 
     self.toDelete = {}
+
+    self.depth = 0
 end
 
 function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
@@ -50,7 +52,9 @@ function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = {}
     end
 
+    self.depth = self.depth + 1
     func(textTransformer, element, ...)
+    self.depth = self.depth - 1
 
     if (previous) then
         self.previousIdentifierScope[#self.previousIdentifierScope] = nil
@@ -64,7 +68,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
     if (previousScope and previousScope[rawIdentifier]) then
         local e = previousScope[rawIdentifier]
 
-        e.textElement.text = text
+        e.textElement.content = text
         e.textElement.oldPosition = e.textElement.position
         e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
         e.textElement.color = color
@@ -72,7 +76,21 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
         self.toDelete[e] = nil
-        print("updated", rawIdentifier)
+
+        print(selectableCodeElement)
+        if (selectableCodeElement) then
+            e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
+
+            print(e.selectable)
+
+            if (self.previousSelectable) then
+                self.previousSelectable.selectable.next = e
+            end
+
+            self.previousSelectable = e
+        else
+            e:remove("selectable")
+        end
     else
         local position = {x = self.cursor.x, y = self.cursor.y}
 
@@ -84,18 +102,16 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
 
-        print("made", rawIdentifier)
+        if (selectableCodeElement) then
+            e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
+
+            if (self.previousSelectable) then
+                self.previousSelectable.selectable.next = e
+            end
+
+            self.previousSelectable = e
+        end
     end
-
-    -- if (selectableCodeElement) then
-    --     e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
-
-    --     if (self.previousSelectable) then
-    --         self.previousSelectable.selectable.next = e
-    --     end
-
-    --     self.previousSelectable = e
-    -- end
 
     local font = love.graphics.getFont()
     self.cursor.x = self.cursor.x + font:getWidth(text)
@@ -140,9 +156,17 @@ function TextTransformer:reset()
     self.identifierTree = {}
     self.currentIdentifierScope = {self.identifierTree}
 
+    self.previousSelectable = nil
+
     for _, e in ipairs(self.old) do
         self.toDelete[e] = true
     end
+
+    self.depth = 0
+end
+
+function TextTransformer:codeElementChanged(e)
+    self.dirty = true
 end
 
 function TextTransformer:update(dt)

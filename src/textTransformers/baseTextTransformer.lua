@@ -34,11 +34,11 @@ function BaseTextTransformer:transformStruct(e)
 end
 
 function BaseTextTransformer:transformStructField(field)
-    self.control:print("identifier", field.codeElement.identifier, Colors.syntax.field)
+    self.control:print("identifier", field.codeElement.identifier, Colors.syntax.field, field)
     self.control:space()
     self.control:print("typeIndicator", ":", Colors.syntax.text)
     self.control:space()
-    self.control:print("type", field.field.type.codeElement.identifier, Colors.syntax.type)
+    self.control:print("type", field.field.type.codeElement.identifier, Colors.syntax.type, field.field.type)
     self.control:print("terminator", ";", Colors.syntax.text)
 end
 

@@ -18,7 +18,7 @@ function WeirdBrachesTextTransformer:transform(codeElements)
 end
 
 function WeirdBrachesTextTransformer:transformStruct(e)
-    self.control:print("keywordStruct", "struct", Colors.syntax.keywordStruct)
+    self.control:print("notAStructKeyword", "not a struct", Colors.syntax.keywordStruct)
     self.control:space()
     self.control:print("identifier", e.codeElement.identifier, Colors.syntax.text, e)
     self.control:newLine()
@@ -36,8 +36,6 @@ end
 
 function WeirdBrachesTextTransformer:transformStructField(field)
     self.control:print("type", field.field.type.codeElement.identifier, Colors.syntax.type)
-    self.control:space()
-    self.control:print("typeIndicator", ":", Colors.syntax.text)
     self.control:space()
     self.control:print("identifier", field.codeElement.identifier, Colors.syntax.field)
     self.control:print("terminator", ";", Colors.syntax.text)
