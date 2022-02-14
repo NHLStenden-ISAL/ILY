@@ -1,7 +1,9 @@
-ecs.component("selectable", function(e, codeElement, previous, next, depth)
+ecs.component("selectable", function(e, codeElement, depth)
     e.codeElement = codeElement
-
-    e.previous = previous
-    e.next = next
     e.depth = depth
+
+    e.up = {}
+    e.down = {}
+    e.left = nil
+    e.right = nil
 end)

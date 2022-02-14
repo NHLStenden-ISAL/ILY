@@ -18,7 +18,10 @@ function love.errorhandler(msg)
     end
 end
 
+local fontSmall = love.graphics.newFont("assets/FiraCode-Regular.ttf", 12)
+
 love.graphics.setBackgroundColor(0.15, 0.15, 0.15, 1.0)
+love.keyboard.setKeyRepeat(true)
 
 ecs = require("lib.concord")
 
@@ -33,14 +36,14 @@ world.singletons.indentDepth = 40
 world.singletons.detail = "full"
 world.singletons.scrollVelocity = 0
 world.singletons.camera = {
-    x = 200,
-    y = 200,
-    scale = 24,
+    x = 350,
+    y = 50,
+    scale = 20,
 }
 world.singletons.textOutput = {}
 world.singletons.selectors = {}
 world.singletons.cursor = {
-    selected = nil
+    preferredDepth = 1
 }
 world.singletons.animationTimer = {
     timer = 0
@@ -176,6 +179,51 @@ end
 
 function love.draw()
     world:emit("draw")
+
+    local fps = love.timer.getFPS()
+    local deltatime = love.timer.getDelta()
+    local averageDeltatime = love.timer.getAverageDelta()
+    local stats = love.graphics.getStats()
+    local name, version, vendor, device = love.graphics.getRendererInfo()
+
+    local info = string.format([[
+FPS: %u
+Deltatime: %.4f
+
+Draw calls: %u
+Canvas switches: %u
+Texture memory: %u bytes
+Images: %u
+Canvases: %u
+Fonts: %u
+Shader switches: %u
+Draw calls batched: %u
+
+Renderer name: %s
+Renderer version: %s
+Graphics card vendor: %s
+Graphics card: %s
+    ]], 
+    fps,
+    averageDeltatime,
+    stats.drawcalls, 
+    stats.canvasswitches, 
+    stats.texturememory,
+    stats.images,
+    stats.canvases,
+    stats.fonts,
+    stats.shaderswitches,
+    stats.drawcallsbatched,
+    name,
+    version,
+    vendor,
+    device
+)
+
+
+    love.graphics.setColor(0.6, 0.6, 0.6, 1)
+    love.graphics.setFont(fontSmall)
+    love.graphics.print(info, 10, 10)
 end
 
 function love.keypressed(key)

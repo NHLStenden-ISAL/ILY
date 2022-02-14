@@ -6,15 +6,11 @@ local Cursor = ecs.system({
 function Cursor:keypressed(key)
     if (key == "up") then
         for _, e in ipairs(self.selected) do
-            local previous = e.selectable.previous
+            local up = e.selectable.up and e.selectable.up[1]
 
-            if (love.keyboard.isDown("lctrl")) then
-                previous = self:findPreviousOnDepth(e, e.selectable.depth)
-            end
-
-            if (previous) then
+            if (up) then
                 e:remove("selected")
-                previous:give("selected")
+                up:give("selected")
             end
         end
     end
@@ -24,62 +20,62 @@ function Cursor:keypressed(key)
             self.selectable:get(1):give("selected")
         end
 
-
         for _, e in ipairs(self.selected) do
-            local next = e.selectable.next
+            self:tryMoveDown(e)
+        end
+    end
 
-            if (love.keyboard.isDown("lctrl")) then
-                next = self:findNextOnDepth(e, e.selectable.depth)
-            end
+    if (key == "right") then
+        for _, e in ipairs(self.selected) do
+            self:tryMoveRight(e)
+        end
+    end
 
-            if (next) then
+    if (key == "left") then
+        for _, e in ipairs(self.selected) do
+            local left = e.selectable.left
+
+            if (left) then
                 e:remove("selected")
-                next:give("selected")
+                left:give("selected")
             end
         end
     end
 end
 
-function Cursor:findPreviousOnDepth(e, depth)
-    e = e.selectable.previous
+function Cursor:tryMoveRight(e)
+    local right = e.selectable.right
 
-    if (e == nil) then
-        return nil
+    if (right) then
+        self:getWorld().singletons.preferredDepth = self:getWorld().singletons.cursor.preferredDepth + 1
+
+        e:remove("selected")
+        right:give("selected")
+    else
+        self:tryMoveDown(e)
     end
-
-    while (e.selectable.depth > depth) do
-        next = e.selectable.previous
-
-        print(next)
-        if (next == nil) then
-            return e
-        end
-
-        e = next
-    end
-
-    return e
 end
 
-function Cursor:findNextOnDepth(e, depth)
-    e = e.selectable.next
+function Cursor:tryMoveDown(e)
+    local down = nil
+    local depth = math.huge
 
-    if (e == nil) then
-        return nil
-    end
-    
-    while (e.selectable.depth > depth) do
-        next = e.selectable.next
+    for _, selectable in ipairs(e.selectable.down) do
+        print(selectable.selectable.depth)
+        print(self:getWorld().singletons.cursor.preferredDepth)
+        print(depth)
 
-        print(next)
-        if (next == nil) then
-            return e
+
+        if (selectable.selectable.depth <= self:getWorld().singletons.cursor.preferredDepth and selectable.selectable.depth < depth) then
+            down = selectable
+            depth = selectable.selectable.depth
         end
-
-        e = next
     end
 
-    return e
+    if (down) then
+        e:remove("selected")
+        down:give("selected")
+    end
 end
 
 return Cursor

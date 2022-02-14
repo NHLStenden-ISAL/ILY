@@ -22,22 +22,8 @@ function TextRenderer:draw()
     love.graphics.translate(self:getWorld().singletons.camera.x,
                             self:getWorld().singletons.camera.y)
 
-    local font = love.graphics.getFont()
-
-    -- for _, textTransform in ipairs(self:getWorld().singletons.textOutput) do
-    --     local x = textTransform.position.x
-    --     local y = textTransform.position.y
-
-    --     love.graphics.setColor(textTransform.color)
-    --     love.graphics.print(textTransform.content, x, y)
-
-    --     if (textTransform.selectable) then
-    --         local width = font:getWidth(textTransform.content)
-    --         local height = font:getHeight()
-
-    --         love.graphics.line(x, y + height - 2, x + width, y + height - 2)
-    --     end
-    -- end
+    local font = self:getWorld().singletons.font
+    love.graphics.setFont(font)
 
     for _, e in ipairs(self.pool) do
         local oldx = e.textElement.oldPosition.x

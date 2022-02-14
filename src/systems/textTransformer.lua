@@ -28,7 +28,8 @@ function TextTransformer:init()
     self.previousIdentifierScope = {}
     -- self.previousIdentifierScope = Stack()
 
-    self.previousSelectable = nil
+    self.currentSelectables = {}
+    self.previousSelectables = {}
 
     self.textTransformer = BaseTextTransformer(self)
 
@@ -43,15 +44,14 @@ function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
     local scope = self.currentIdentifierScope[#self.currentIdentifierScope][identifier] or {}
     self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
     self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
-
-
+    
     local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][identifier]
     if (previous) then
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = previous
     else
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = {}
     end
-
+    
     self.depth = self.depth + 1
     func(textTransformer, element, ...)
     self.depth = self.depth - 1
@@ -77,17 +77,21 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
         self.toDelete[e] = nil
 
-        print(selectableCodeElement)
         if (selectableCodeElement) then
-            e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
+            e:give("selectable", selectableCodeElement, self.depth)
 
-            print(e.selectable)
+            e.selectable.up = self.previousSelectables
+            e.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
 
-            if (self.previousSelectable) then
-                self.previousSelectable.selectable.next = e
+            for _, previous in ipairs(self.previousSelectables) do
+                table.insert(previous.selectable.down, e)
             end
 
-            self.previousSelectable = e
+            if (#self.currentSelectables > 0) then
+                self.currentSelectables[#self.currentSelectables].right = e
+            end
+
+            table.insert(self.currentSelectables, e)
         else
             e:remove("selectable")
         end
@@ -103,43 +107,49 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
 
         if (selectableCodeElement) then
-            e:give("selectable", selectableCodeElement, self.previousSelectable, nil, self.depth)
+            e:give("selectable", selectableCodeElement, self.depth)
 
-            if (self.previousSelectable) then
-                self.previousSelectable.selectable.next = e
+            e.selectable.up = self.previousSelectables
+            e.selectable.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
+
+            for _, previous in ipairs(self.previousSelectables) do
+                table.insert(previous.selectable.down, e)
             end
 
-            self.previousSelectable = e
+            if (#self.currentSelectables > 0) then
+                self.currentSelectables[#self.currentSelectables].selectable.right = e
+            end
+
+            table.insert(self.currentSelectables, e)
         end
     end
 
-    local font = love.graphics.getFont()
+    local font = self:getWorld().singletons.font
     self.cursor.x = self.cursor.x + font:getWidth(text)
 end
 
 function TextTransformer:space()
-    local font = love.graphics.getFont()
+    local font = self:getWorld().singletons.font
     self.cursor.x = self.cursor.x + font:getWidth(" ")
 end
 
 function TextTransformer:indent()
-    local font = love.graphics.getFont()
+    local font = self:getWorld().singletons.font
     local fraction = font:getWidth(" ") * 0.1
 
     self.cursor.x = self.cursor.x + (self:getWorld().singletons.indentDepth * fraction)
 end
 
-function TextTransformer:outdent()
-    local font = love.graphics.getFont()
-    local fraction = font:getWidth(" ") * 0.1
-
-    self.cursor.x = self.cursor.x - (self:getWorld().singletons.indentDepth * fraction)
-end
-
 function TextTransformer:newLine()
-    local font = love.graphics.getFont()
+    local font = self:getWorld().singletons.font
     self.cursor.x = 0
     self.cursor.y = self.cursor.y + font:getHeight()
+
+    self.depth = 0
+    if (#self.currentSelectables > 0) then
+        self.previousSelectables = self.currentSelectables
+        self.currentSelectables = {}
+    end
 end
 
 function TextTransformer:reset()
@@ -156,7 +166,8 @@ function TextTransformer:reset()
     self.identifierTree = {}
     self.currentIdentifierScope = {self.identifierTree}
 
-    self.previousSelectable = nil
+    self.currentSelectables = {}
+    self.previousSelectables = {}
 
     for _, e in ipairs(self.old) do
         self.toDelete[e] = true
@@ -181,8 +192,6 @@ end
 function TextTransformer:keypressed(key)
     self:getWorld().singletons.animationTimer.timer = 0
 
-    print('----')
-
     if (key == "[") then
         self.textTransformer = BaseTextTransformer(self)
         self:transformDataToText()
@@ -200,7 +209,6 @@ function TextTransformer:keypressed(key)
 end
 
 function TextTransformer:transformDataToText()
-    print("doing a transform")
     self:reset()
 
     self.textTransformer:transform(self.pool)

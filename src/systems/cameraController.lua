@@ -25,7 +25,8 @@ function CameraController:wheelmoved(dx, dy)
 end
 
 function CameraController:updateFont()
-    love.graphics.setNewFont("assets/FiraCode-Regular.ttf", math.floor(self:getWorld().singletons.camera.scale + 0.5))
+    local font = love.graphics.newFont("assets/FiraCode-Regular.ttf", math.floor(self:getWorld().singletons.camera.scale + 0.5))
+    self:getWorld().singletons.font = font
 end
 
 return CameraController
