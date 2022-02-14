@@ -181,8 +181,8 @@ function love.draw()
     world:emit("draw")
 
     local fps = love.timer.getFPS()
-    local deltatime = love.timer.getDelta()
     local averageDeltatime = love.timer.getAverageDelta()
+    local memoryUsage = collectgarbage("count")
     local stats = love.graphics.getStats()
     local name, version, vendor, device = love.graphics.getRendererInfo()
 
@@ -190,9 +190,11 @@ function love.draw()
 FPS: %u
 Deltatime: %.4f
 
+Memory usage: %u Kb
+
 Draw calls: %u
 Canvas switches: %u
-Texture memory: %u bytes
+Texture memory: %u Kb
 Images: %u
 Canvases: %u
 Fonts: %u
@@ -206,9 +208,10 @@ Graphics card: %s
     ]], 
     fps,
     averageDeltatime,
+    memoryUsage,
     stats.drawcalls, 
     stats.canvasswitches, 
-    stats.texturememory,
+    stats.texturememory / 1024,
     stats.images,
     stats.canvases,
     stats.fonts,

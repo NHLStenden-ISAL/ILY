@@ -44,14 +44,14 @@ function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
     local scope = self.currentIdentifierScope[#self.currentIdentifierScope][identifier] or {}
     self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
     self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
-    
+
     local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][identifier]
     if (previous) then
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = previous
     else
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = {}
     end
-    
+
     self.depth = self.depth + 1
     func(textTransformer, element, ...)
     self.depth = self.depth - 1
@@ -81,14 +81,16 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
             e:give("selectable", selectableCodeElement, self.depth)
 
             e.selectable.up = self.previousSelectables
-            e.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
+            e.selectable.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
+            e.selectable.down = {}
+            e.selectable.right = {}
 
             for _, previous in ipairs(self.previousSelectables) do
                 table.insert(previous.selectable.down, e)
             end
 
             if (#self.currentSelectables > 0) then
-                self.currentSelectables[#self.currentSelectables].right = e
+                self.currentSelectables[#self.currentSelectables].selectable.right = e
             end
 
             table.insert(self.currentSelectables, e)
@@ -126,6 +128,10 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
 
     local font = self:getWorld().singletons.font
     self.cursor.x = self.cursor.x + font:getWidth(text)
+
+    if (selectableCodeElement) then
+        self.depth = self.depth + 1
+    end
 end
 
 function TextTransformer:space()
