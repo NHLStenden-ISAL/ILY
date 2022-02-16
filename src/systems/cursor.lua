@@ -3,33 +3,37 @@ local Cursor = ecs.system({
     selectable = {"textElement", "selectable"},
 })
 
-function Cursor:keypressed(key)
-    if (key == "up") then
-        for _, e in ipairs(self.selected) do
-            self:tryMoveUp(e)
-        end
-    end
-
-    if (key == "down") then
+function Cursor:init()
+    self.selected.onRemoved = function()
         if (#self.selected == 0) then
-            self.selectable:get(1):give("selected")
-        end
-
-        for _, e in ipairs(self.selected) do
-            self:tryMoveDown(e)
+            self:trySelectFirstSelectable()
         end
     end
 
-    if (key == "right") then
-        for _, e in ipairs(self.selected) do
-            self:tryMoveRight(e)
+    self.selectable.onAdded = function()
+        if (#self.selected == 0) then
+            self:trySelectFirstSelectable()
         end
     end
+end
 
-    if (key == "left") then
-        for _, e in ipairs(self.selected) do
-            self:tryMoveLeft(e)
-        end
+function Cursor:trySelectFirstSelectable()
+    if (#self.selectable ~= 0) then
+        self.selectable:get(1):give("selected")
+    end
+end
+
+function Cursor:selectOther(from, to)
+    to:give("selected")
+    from:remove("selected")
+end
+
+function Cursor:keypressed(key)
+    for _, e in ipairs(self.selected) do
+        if (key == "up") then self:tryMoveUp(e) end
+        if (key == "down") then self:tryMoveDown(e) end
+        if (key == "left") then self:tryMoveLeft(e) end
+        if (key == "right") then self:tryMoveRight(e) end
     end
 end
 
@@ -39,12 +43,22 @@ function Cursor:tryMoveLeft(e)
     if (left) then
         self:getWorld().singletons.cursor.preferredDepth = left.selectable.depth
 
-        e:remove("selected")
-        left:give("selected")
+        self:selectOther(e, left)
     else
-        local depth = self:tryMoveUp(e)
-        if (depth) then
-            self:getWorld().singletons.cursor.preferredDepth = depth
+        local up = nil
+        local depth = 0
+
+        for _, selectable in ipairs(e.selectable.up) do
+            if (selectable.selectable.depth > depth) then
+                up = selectable
+                depth = selectable.selectable.depth
+            end
+        end
+
+        if up then
+            self:selectOther(e, up)
+
+            self:getWorld().singletons.cursor.preferredDepth = up.selectable.depth
         end
     end
 end
@@ -53,14 +67,24 @@ function Cursor:tryMoveRight(e)
     local right = e.selectable.right
 
     if (right) then
-        self:getWorld().singletons.cursor.preferredDepth = right.selectable.depth
+        self:selectOther(e, right)
 
-        e:remove("selected")
-        right:give("selected")
+        self:getWorld().singletons.cursor.preferredDepth = right.selectable.depth
     else
-        local depth = self:tryMoveDown(e)
-        if (depth) then
-            self:getWorld().singletons.cursor.preferredDepth = depth
+        local down = nil
+        local depth = math.huge
+
+        for _, selectable in ipairs(e.selectable.down) do
+            if (selectable.selectable.depth < depth) then
+                down = selectable
+                depth = selectable.selectable.depth
+            end
+        end
+
+        if down then
+            self:selectOther(e, down)
+
+            self:getWorld().singletons.cursor.preferredDepth = down.selectable.depth
         end
     end
 end
@@ -77,8 +101,7 @@ function Cursor:tryMoveDown(e)
     end
 
     if (down) then
-        e:remove("selected")
-        down:give("selected")
+        self:selectOther(e, down)
 
         return depth
     end
@@ -96,8 +119,7 @@ function Cursor:tryMoveUp(e)
     end
 
     if (up) then
-        e:remove("selected")
-        up:give("selected")
+        self:selectOther(e, up)
 
         return depth
     end

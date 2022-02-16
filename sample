@@ -1,0 +1,101 @@
+component position {
+    x : number
+    y : number
+}
+
+component velocity {
+    vx : number
+    vy : number
+}
+
+component targetting {
+    target : entity<position>
+    power  : number
+}
+
+component controllable
+
+component parent {
+    children: relation<child>[]
+}
+
+component child {
+    parent : relation<parent>
+}
+
+component linked list node {
+    next: entity<linked list node>
+}
+
+component doubly linked list node {
+    prev: relation<doubly linked list node>
+    next: relation<doubly linked list node>
+}
+
+archetype player {
+    position
+    velocity(vx = 0, vy = 0)
+    controllable
+}
+
+archetype enemy slow {
+    position
+    velocity  (vx = 0, vy = 0)
+    targetting(power = 10)
+}
+
+archetype enemy fast {
+    position
+    velocity   (vx = 0, vy = 0)
+    targetting (power = 30)
+}
+
+system entry load() {
+    const player = player (x = 50, y = 50)
+
+    enemy slow (x =   0, y =   0, target = player)
+    enemy slow (x = 100, y =   0, target = player)
+    enemy fast (x = 100, y = 100, target = player)
+}
+
+function apply velocity(e : entity, dt : number) {
+    e.position.x += e.velocity.x * dt
+    e.position.y += e.velocity.y * dt
+}
+
+system physicsMove update(dt : number) {
+    @e {
+        apply velocity(e = e, dt = dt)
+    }
+}
+
+system targetter update(dt : number) {
+    @e {
+        if (!e.targetting.target) skip;
+
+        const angle = math.atan2(
+            (e.targetting.position.y - e.position.y), 
+            (e.targetting.position.x - e.position.x)
+        )
+		
+		const dx = e.targetting.power * math.cos(angle)
+		const dy = e.targetting.power * math.sin(angle)
+
+        e.velocity.x += dx * dt
+        e.velocity.y += dy * dt
+    }
+}
+
+system usercontrol update(dt: number) {
+    @e controllable {
+        if (love.keyboard.isDown("w")) {
+
+        }
+    }
+}
+
+system renderer draw() {
+    @e {
+        love.graphics.rectangle("fill", e.position.x, e.position.y, 10, 10)
+    }
+}

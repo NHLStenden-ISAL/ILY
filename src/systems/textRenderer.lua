@@ -34,7 +34,7 @@ function TextRenderer:draw()
         -- local t = math.min(1, self:getWorld().singletons.animationTimer.timer / 0.2)
 
         local t = self:getWorld().singletons.animationTimer.timer
-        local maxt = 0.3
+        local maxt = 0.2
         -- local x = lerp(oldx, newx, t)
         -- local y = lerp(oldy, newy, t)
         local x = outCubic(math.min(t, maxt), oldx, newx - oldx, maxt)

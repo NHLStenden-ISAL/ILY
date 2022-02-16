@@ -70,102 +70,235 @@ local typeString = ecs.entity()
 :give("codeElement", "string")
 world:addEntity(typeString)
 
-local foo
+local typeEntity = ecs.entity()
+:give("codeElement", "entity")
+world:addEntity(typeEntity)
+
+local typeEntityPosition = ecs.entity()
+:give("codeElement", "entity<position>")
+world:addEntity(typeEntityPosition)
+
+local position, velocity, targetting, controllable
+local position_x, position_y
+local velocity_vx, velocity_vy
+local targetting_target, targetting_power
 
 do
     local e = ecs.entity()
-    :give("codeElement", "foo")
-    :give("struct", {})
+    :give("codeElement", "position")
+    :give("component", {})
     :give("visible")
     world:addEntity(e)
 
     do
         local field = ecs.entity()
-        :give("codeElement", "a")
+        :give("codeElement", "x")
         :give("field", typeNumber)
-        -- :give("selected")
+
         world:addEntity(field)
 
-        table.insert(e.struct.fields, field)
+        table.insert(e.component.fields, field)
+
+        position_x = field
     end
 
     do
         local field = ecs.entity()
-        :give("codeElement", "b")
-        :give("field", typeString)
-        -- :give("selected")
+        :give("codeElement", "y")
+        :give("field", typeNumber)
+
         world:addEntity(field)
 
-        table.insert(e.struct.fields, field)
+        table.insert(e.component.fields, field)
+
+        position_y = field
     end
 
-    foo = e
+    position = e
 end
 
 do
     local e = ecs.entity()
-    :give("codeElement", "bar")
-    :give("struct", {})
-    :give("visible")
-    world:addEntity(e)
-
-    local field = ecs.entity()
-    :give("codeElement", "c")
-    :give("field", foo)
-    world:addEntity(field)
-
-    table.insert(e.struct.fields, field)
-end
-
-do
-    local e = ecs.entity()
-    :give("codeElement", "qux")
-    :give("struct", {})
-    :give("visible")
-    world:addEntity(e)
-
-    local field = ecs.entity()
-    :give("codeElement", "d")
-    :give("field", foo)
-    world:addEntity(field)
-
-    table.insert(e.struct.fields, field)
-end
-
-do
-    local e = ecs.entity()
-    :give("codeElement", "quux")
-    :give("struct", {})
+    :give("codeElement", "velocity")
+    :give("component", {})
     :give("visible")
     world:addEntity(e)
 
     do
         local field = ecs.entity()
+        :give("codeElement", "vx")
+        :give("field", typeNumber)
+
+        world:addEntity(field)
+
+        table.insert(e.component.fields, field)
+
+        velocity_vx = field
+    end
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "vy")
+        :give("field", typeNumber)
+
+        world:addEntity(field)
+
+        table.insert(e.component.fields, field)
+
+        velocity_vy = field
+    end
+
+    velocity = e
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "targetting")
+    :give("component", {})
+    :give("visible")
+    world:addEntity(e)
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "target")
+        :give("field", typeEntityPosition)
+
+        world:addEntity(field)
+
+        table.insert(e.component.fields, field)
+        
+        targetting_target = field
+    end
+
+    do
+        local field = ecs.entity()
+        :give("codeElement", "power")
+        :give("field", typeNumber)
+
+        world:addEntity(field)
+
+        table.insert(e.component.fields, field)
+
+        targetting_power = field
+    end
+
+    targetting = e
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "controllable")
+    :give("component", {})
+    :give("visible")
+    world:addEntity(e)
+
+    controllable = e
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "player")
+    :give("archetype", {
+        {
+            component = position,
+            arguments = {},
+        },
+        {
+            component = velocity,
+            arguments = {
+                {field = velocity_vx, value = 0},
+                {field = velocity_vy, value = 0},
+            },
+        },
+        {
+            component = controllable,
+            arguments = {},
+        },
+    })
+    :give("visible")
+    world:addEntity(e)
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "enemy slow")
+    :give("archetype", {
+        {
+            component = position,
+            arguments = {},
+        },
+        {
+            component = velocity,
+            arguments = {
+                {field = velocity_vx, value = 0},
+                {field = velocity_vy, value = 0},
+            },
+        },
+        {
+            component = targetting,
+            arguments = {
+                {field = targetting_power, value = 10}
+            },
+        },
+    })
+    :give("visible")
+    world:addEntity(e)
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "enemy fast")
+    :give("archetype", {
+        {
+            component = position,
+            arguments = {},
+        },
+        {
+            component = velocity,
+            arguments = {
+                {field = velocity_vx, value = 0},
+                {field = velocity_vy, value = 0},
+            },
+        },
+        {
+            component = targetting,
+            arguments = {
+                {field = targetting_power, value = 30}
+            },
+        },
+    })
+    :give("visible")
+    world:addEntity(e)
+end
+
+do
+    local e = ecs.entity()
+    :give("codeElement", "apply velocity")
+    :give("function", {})
+    :give("visible")
+    world:addEntity(e)
+
+    do
+        local argument = ecs.entity()
         :give("codeElement", "e")
-        :give("field", typeString)
-        world:addEntity(field)
+        :give("functionArgument", typeEntity)
 
-        table.insert(e.struct.fields, field)
+        world:addEntity(argument)
+
+        table.insert(e["function"].arguments, argument)
     end
 
     do
-        local field = ecs.entity()
-        :give("codeElement", "f")
-        :give("field", typeBoolean)
-        world:addEntity(field)
+        local argument = ecs.entity()
+        :give("codeElement", "dt")
+        :give("functionArgument", typeNumber)
 
-        table.insert(e.struct.fields, field)
-    end
+        world:addEntity(argument)
 
-    do
-        local field = ecs.entity()
-        :give("codeElement", "g")
-        :give("field", typeNumber)
-        world:addEntity(field)
-
-        table.insert(e.struct.fields, field)
+        table.insert(e["function"].arguments, argument)
     end
 end
+
 
 function love.update(dt)
     local friction = 10;

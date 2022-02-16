@@ -2,6 +2,8 @@ local BaseTextTransformer = require("src.textTransformers.baseTextTransformer")
 local FunkyTextTransformer = require("src.textTransformers.funkyTextTransformer")
 local WeirdBrachesTextTransformer = require("src.textTransformers.weirdBrachesTextTransformer")
 
+local Locale = require("src.locale")
+
 local Stack = require("src.datastructures.stack")
 
 local TextTransformer = ecs.system({
@@ -64,6 +66,11 @@ end
 
 function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement)
     local previousScope = self.previousIdentifierScope[#self.previousIdentifierScope]
+
+    if (Locale.usToUk[text]) then
+        text = Locale.usToUk[text]
+    end
+
 
     if (previousScope and previousScope[rawIdentifier]) then
         local e = previousScope[rawIdentifier]
@@ -196,8 +203,6 @@ function TextTransformer:update(dt)
 end
 
 function TextTransformer:keypressed(key)
-    self:getWorld().singletons.animationTimer.timer = 0
-
     if (key == "[") then
         self.textTransformer = BaseTextTransformer(self)
         self:transformDataToText()
@@ -215,6 +220,7 @@ function TextTransformer:keypressed(key)
 end
 
 function TextTransformer:transformDataToText()
+    self:getWorld().singletons.animationTimer.timer = 0
     self:reset()
 
     self.textTransformer:transform(self.pool)

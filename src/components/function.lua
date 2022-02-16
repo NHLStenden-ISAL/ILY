@@ -1,3 +1,3 @@
-ecs.component("function", function(e)
-
+ecs.component("function", function(e, arguments)
+    e.arguments = arguments
 end)
