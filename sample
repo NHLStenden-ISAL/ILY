@@ -58,7 +58,7 @@ system entry load() {
     enemy fast (x = 100, y = 100, target = player)
 }
 
-function apply velocity(e : entity, dt : number) {
+function apply velocity(e : entity, dt : number) : void {
     e.position.x += e.velocity.x * dt
     e.position.y += e.velocity.y * dt
 }

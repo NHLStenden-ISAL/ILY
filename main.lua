@@ -20,7 +20,13 @@ end
 
 local fontSmall = love.graphics.newFont("assets/FiraCode-Regular.ttf", 12)
 
-love.graphics.setBackgroundColor(0.15, 0.15, 0.15, 1.0)
+local Themes = require("src.themes")
+
+local function linear(t, b, c, d) return c * t / d + b end
+local oldBackgroundColor = Themes.current.colors.background
+local backgroundColor = oldBackgroundColor
+
+love.graphics.setBackgroundColor(backgroundColor)
 love.keyboard.setKeyRepeat(true)
 
 ecs = require("lib.concord")
@@ -38,265 +44,102 @@ world.singletons.scrollVelocity = 0
 world.singletons.camera = {
     x = 350,
     y = 50,
-    scale = 20,
+    scale = 15,
 }
 world.singletons.textOutput = {}
 world.singletons.selectors = {}
-world.singletons.cursor = {
-    preferredDepth = 1
-}
 world.singletons.animationTimer = {
     timer = 0
 }
+world.singletons.textNavigationMode = "global"
 
 world:addSystems(
     -- systems.codeInserter,
     systems.cameraController,
     systems.textElementEditor,
     systems.textTransformer,
+    systems.textRenderer,
+    systems.animateTextElementStepper,
     systems.cursor,
-    systems.textRenderer
+    systems.cursorRenderer
 )
 
-local typeNumber = ecs.entity()
-:give("codeElement", "number")
-world:addEntity(typeNumber)
+local CodeElements = require("src.codeElements")
 
-local typeBoolean = ecs.entity()
-:give("codeElement", "boolean")
-world:addEntity(typeBoolean)
+local structNumber = ecs.entity(world)
+:give("codeElement", CodeElements.struct("number"))
 
-local typeString = ecs.entity()
-:give("codeElement", "string")
-world:addEntity(typeString)
+local structBoolean = ecs.entity(world)
+:give("codeElement", CodeElements.struct("boolean"))
 
-local typeEntity = ecs.entity()
-:give("codeElement", "entity")
-world:addEntity(typeEntity)
-
-local typeEntityPosition = ecs.entity()
-:give("codeElement", "entity<position>")
-world:addEntity(typeEntityPosition)
-
-local position, velocity, targetting, controllable
-local position_x, position_y
-local velocity_vx, velocity_vy
-local targetting_target, targetting_power
+local structString = ecs.entity(world)
+:give("codeElement", CodeElements.struct("string"))
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "position")
-    :give("component", {})
-    :give("visible")
-    world:addEntity(e)
+    local x = ecs.entity(world)
+    :give("codeElement", CodeElements.componentField("x", structNumber))
 
-    do
-        local field = ecs.entity()
-        :give("codeElement", "x")
-        :give("field", typeNumber)
+    local y = ecs.entity(world)
+    :give("codeElement", CodeElements.componentField("y", structNumber))
 
-        world:addEntity(field)
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements.component("position"))
 
-        table.insert(e.component.fields, field)
-
-        position_x = field
-    end
-
-    do
-        local field = ecs.entity()
-        :give("codeElement", "y")
-        :give("field", typeNumber)
-
-        world:addEntity(field)
-
-        table.insert(e.component.fields, field)
-
-        position_y = field
-    end
-
-    position = e
+    e.codeElement.codeElement:addField(x)
+    e.codeElement.codeElement:addField(y)
 end
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "velocity")
-    :give("component", {})
-    :give("visible")
-    world:addEntity(e)
+    local vx = ecs.entity(world)
+    :give("codeElement", CodeElements.componentField("vx", structNumber))
 
-    do
-        local field = ecs.entity()
-        :give("codeElement", "vx")
-        :give("field", typeNumber)
+    local vy = ecs.entity(world)
+    :give("codeElement", CodeElements.componentField("vy", structNumber))
 
-        world:addEntity(field)
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements.component("velocity"))
 
-        table.insert(e.component.fields, field)
-
-        velocity_vx = field
-    end
-
-    do
-        local field = ecs.entity()
-        :give("codeElement", "vy")
-        :give("field", typeNumber)
-
-        world:addEntity(field)
-
-        table.insert(e.component.fields, field)
-
-        velocity_vy = field
-    end
-
-    velocity = e
+    e.codeElement.codeElement:addField(vx)
+    e.codeElement.codeElement:addField(vy)
 end
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "targetting")
-    :give("component", {})
-    :give("visible")
-    world:addEntity(e)
-
-    do
-        local field = ecs.entity()
-        :give("codeElement", "target")
-        :give("field", typeEntityPosition)
-
-        world:addEntity(field)
-
-        table.insert(e.component.fields, field)
-        
-        targetting_target = field
-    end
-
-    do
-        local field = ecs.entity()
-        :give("codeElement", "power")
-        :give("field", typeNumber)
-
-        world:addEntity(field)
-
-        table.insert(e.component.fields, field)
-
-        targetting_power = field
-    end
-
-    targetting = e
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements.component("controllable"))
 end
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "controllable")
-    :give("component", {})
-    :give("visible")
-    world:addEntity(e)
+    local n = ecs.entity(world)
+    :give("codeElement", CodeElements.functionArgument("n", structNumber))
 
-    controllable = e
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements["function"]("fib", structNumber))
+
+    e.codeElement.codeElement:addArgument(n)
 end
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "player")
-    :give("archetype", {
-        {
-            component = position,
-            arguments = {},
-        },
-        {
-            component = velocity,
-            arguments = {
-                {field = velocity_vx, value = 0},
-                {field = velocity_vy, value = 0},
-            },
-        },
-        {
-            component = controllable,
-            arguments = {},
-        },
-    })
-    :give("visible")
-    world:addEntity(e)
+    local a = ecs.entity(world)
+    :give("codeElement", CodeElements.functionArgument("a", structNumber))
+
+    local b = ecs.entity(world)
+    :give("codeElement", CodeElements.functionArgument("b", structNumber))
+
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements["function"]("sum", structNumber))
+
+    e.codeElement.codeElement:addArgument(a)
+    e.codeElement.codeElement:addArgument(b)
 end
 
 do
-    local e = ecs.entity()
-    :give("codeElement", "enemy slow")
-    :give("archetype", {
-        {
-            component = position,
-            arguments = {},
-        },
-        {
-            component = velocity,
-            arguments = {
-                {field = velocity_vx, value = 0},
-                {field = velocity_vy, value = 0},
-            },
-        },
-        {
-            component = targetting,
-            arguments = {
-                {field = targetting_power, value = 10}
-            },
-        },
-    })
-    :give("visible")
-    world:addEntity(e)
-end
+    local structName = ecs.entity(world)
+    :give("codeElement", CodeElements.functionArgument("name", structString))
 
-do
-    local e = ecs.entity()
-    :give("codeElement", "enemy fast")
-    :give("archetype", {
-        {
-            component = position,
-            arguments = {},
-        },
-        {
-            component = velocity,
-            arguments = {
-                {field = velocity_vx, value = 0},
-                {field = velocity_vy, value = 0},
-            },
-        },
-        {
-            component = targetting,
-            arguments = {
-                {field = targetting_power, value = 30}
-            },
-        },
-    })
-    :give("visible")
-    world:addEntity(e)
-end
+    local e = ecs.entity(world)
+    :give("codeElement", CodeElements["function"]("print name", structNumber))
 
-do
-    local e = ecs.entity()
-    :give("codeElement", "apply velocity")
-    :give("function", {})
-    :give("visible")
-    world:addEntity(e)
-
-    do
-        local argument = ecs.entity()
-        :give("codeElement", "e")
-        :give("functionArgument", typeEntity)
-
-        world:addEntity(argument)
-
-        table.insert(e["function"].arguments, argument)
-    end
-
-    do
-        local argument = ecs.entity()
-        :give("codeElement", "dt")
-        :give("functionArgument", typeNumber)
-
-        world:addEntity(argument)
-
-        table.insert(e["function"].arguments, argument)
-    end
+    e.codeElement.codeElement:addArgument(structName)
 end
 
 
@@ -311,6 +154,15 @@ function love.update(dt)
 end
 
 function love.draw()
+    local t = world.singletons.animationTimer.timer
+    local maxt = 0.2
+    local r = linear(math.min(t, maxt), oldBackgroundColor[1], backgroundColor[1] - oldBackgroundColor[1], maxt)
+    local g = linear(math.min(t, maxt), oldBackgroundColor[2], backgroundColor[2] - oldBackgroundColor[2], maxt)
+    local b = linear(math.min(t, maxt), oldBackgroundColor[3], backgroundColor[3] - oldBackgroundColor[3], maxt)
+    local a = linear(math.min(t, maxt), oldBackgroundColor[4], backgroundColor[4] - oldBackgroundColor[4], maxt)
+
+    love.graphics.setBackgroundColor(r, g, b, a)
+
     world:emit("draw")
 
     local fps = love.timer.getFPS()
@@ -364,15 +216,25 @@ end
 
 function love.keypressed(key)
     if (key == "1") then
-        world.singletons.detail = "full"
+        Themes.current = Themes.standard
+        world:emit("themeChanged")
+
+        oldBackgroundColor = backgroundColor
+        backgroundColor = Themes.current.colors.background
         return;
     end
     if (key == "2") then
-        world.singletons.detail = "part"
+        Themes.current = Themes.purpor
+        world:emit("themeChanged")
+        oldBackgroundColor = backgroundColor
+        backgroundColor = Themes.current.colors.background
         return;
     end
     if (key == "3") then
-        world.singletons.detail = "structure"
+        Themes.current = Themes.oil
+        world:emit("themeChanged")
+        oldBackgroundColor = backgroundColor
+        backgroundColor = Themes.current.colors.background
         return;
     end
 

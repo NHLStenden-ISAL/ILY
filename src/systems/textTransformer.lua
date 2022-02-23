@@ -1,13 +1,10 @@
 local BaseTextTransformer = require("src.textTransformers.baseTextTransformer")
-local FunkyTextTransformer = require("src.textTransformers.funkyTextTransformer")
-local WeirdBrachesTextTransformer = require("src.textTransformers.weirdBrachesTextTransformer")
+local TestTextTransformer = require("src.textTransformers.testTextTransformer")
 
 local Locale = require("src.locale")
 
-local Stack = require("src.datastructures.stack")
-
 local TextTransformer = ecs.system({
-    pool = {"codeElement", "visible"},
+    pool = {"codeElement"},
     old = {"textElement"}
 })
 
@@ -22,32 +19,30 @@ function TextTransformer:init()
 
     self.identifierTree = {}
     self.currentIdentifierScope = {self.identifierTree}
-    -- self.currentIdentifierScope = Stack()
-    -- self.currentIdentifierScope.push(self.identifierTree)
-
 
     self.previousIdentifierTree = {}
     self.previousIdentifierScope = {}
-    -- self.previousIdentifierScope = Stack()
 
     self.currentSelectables = {}
     self.previousSelectables = {}
 
-    self.textTransformer = BaseTextTransformer(self)
+    self.textTransformer = TestTextTransformer(self)
 
     self.toDelete = {}
 
     self.depth = 0
 end
 
-function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
-    identifier = "codeElement-"..tostring(identifier)
-    
-    local scope = self.currentIdentifierScope[#self.currentIdentifierScope][identifier] or {}
-    self.currentIdentifierScope[#self.currentIdentifierScope][identifier] = scope
+function TextTransformer:themeChanged()
+    self.dirty = true
+end
+
+function TextTransformer:beginScope(entity)
+    local scope = self.currentIdentifierScope[#self.currentIdentifierScope][entity] or {}
+    self.currentIdentifierScope[#self.currentIdentifierScope][entity] = scope
     self.currentIdentifierScope[#self.currentIdentifierScope + 1] = scope
 
-    local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][identifier]
+    local previous = self.previousIdentifierScope[#self.previousIdentifierScope] and self.previousIdentifierScope[#self.previousIdentifierScope][entity]
     if (previous) then
         self.previousIdentifierScope[#self.previousIdentifierScope + 1] = previous
     else
@@ -55,7 +50,11 @@ function TextTransformer:scoped(textTransformer, identifier, element, func, ...)
     end
 
     self.depth = self.depth + 1
-    func(textTransformer, element, ...)
+
+    return previous
+end
+
+function TextTransformer:endScope(previous)
     self.depth = self.depth - 1
 
     if (previous) then
@@ -67,19 +66,16 @@ end
 function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement)
     local previousScope = self.previousIdentifierScope[#self.previousIdentifierScope]
 
-    if (Locale.usToUk[text]) then
-        text = Locale.usToUk[text]
-    end
-
-
     if (previousScope and previousScope[rawIdentifier]) then
         local e = previousScope[rawIdentifier]
 
-        e.textElement.content = text
-        e.textElement.oldPosition = e.textElement.position
-        e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
-        e.textElement.color = color
-        e.textElement.new = false
+        if (e.textElement.content ~= text or e.textElement.position.x ~= self.cursor.x or e.textElement.position.y ~= self.cursor.y or e.textElement.color ~= color) then
+            e:give("animateChangeTextElement", e.textElement.content, e.textElement.position, e.textElement.color, 0.2)
+
+            e.textElement.content = text
+            e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
+            e.textElement.color = color
+        end
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
         self.toDelete[e] = nil
@@ -90,7 +86,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
             e.selectable.up = self.previousSelectables
             e.selectable.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
             e.selectable.down = {}
-            e.selectable.right = {}
+            e.selectable.right = nil
 
             for _, previous in ipairs(self.previousSelectables) do
                 table.insert(previous.selectable.down, e)
@@ -109,7 +105,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
 
         local e = ecs.entity()
         e:give("textElement", text, position, color)
-        e.textElement.new = true
+        e:give("animateCreateTextElement", 0.2)
 
         self:getWorld():addEntity(e)
 
@@ -202,23 +198,6 @@ function TextTransformer:update(dt)
     end
 end
 
-function TextTransformer:keypressed(key)
-    if (key == "[") then
-        self.textTransformer = BaseTextTransformer(self)
-        self:transformDataToText()
-    end
-
-    if (key == "]") then
-        self.textTransformer = FunkyTextTransformer(self)
-        self:transformDataToText()
-    end
-
-    if (key == "=") then
-        self.textTransformer = WeirdBrachesTextTransformer(self)
-        self:transformDataToText()
-    end
-end
-
 function TextTransformer:transformDataToText()
     self:getWorld().singletons.animationTimer.timer = 0
     self:reset()
@@ -231,6 +210,13 @@ function TextTransformer:transformDataToText()
     self.toDelete = {}
 
     self:getWorld().singletons.textOutput = self.output
+end
+
+function TextTransformer:keypressed(key)
+    if (key == "tab") then
+        self.textTransformer.bracesOnNewLine = not self.textTransformer.bracesOnNewLine
+        self.dirty = true
+    end
 end
 
 return TextTransformer
