@@ -39,7 +39,6 @@ local world = ecs.world()
 world.singletons = {}
 
 world.singletons.indentDepth = 40
-world.singletons.detail = "full"
 world.singletons.scrollVelocity = 0
 world.singletons.camera = {
     x = 350,
@@ -52,9 +51,9 @@ world.singletons.animationTimer = {
     timer = 0
 }
 world.singletons.textNavigationMode = "global"
+world.singletons.doInsertionPoint = false
 
 world:addSystems(
-    -- systems.codeInserter,
     systems.cameraController,
     systems.textElementEditor,
     systems.textTransformer,
@@ -66,14 +65,20 @@ world:addSystems(
 
 local CodeElements = require("src.codeElements")
 
+local root = ecs.entity(world)
+:give("codeElement", CodeElements.root())
+
 local structNumber = ecs.entity(world)
 :give("codeElement", CodeElements.struct("number"))
+root.codeElement.codeElement:addCodeElement(structNumber)
 
 local structBoolean = ecs.entity(world)
 :give("codeElement", CodeElements.struct("boolean"))
+root.codeElement.codeElement:addCodeElement(structBoolean)
 
 local structString = ecs.entity(world)
 :give("codeElement", CodeElements.struct("string"))
+root.codeElement.codeElement:addCodeElement(structString)
 
 do
     local x = ecs.entity(world)
@@ -85,8 +90,10 @@ do
     local e = ecs.entity(world)
     :give("codeElement", CodeElements.component("position"))
 
-    e.codeElement.codeElement:addField(x)
-    e.codeElement.codeElement:addField(y)
+    e.codeElement.codeElement:addField(x, 1)
+    e.codeElement.codeElement:addField(y, 2)
+
+    root.codeElement.codeElement:addCodeElement(e)
 end
 
 do
@@ -99,8 +106,10 @@ do
     local e = ecs.entity(world)
     :give("codeElement", CodeElements.component("velocity"))
 
-    e.codeElement.codeElement:addField(vx)
-    e.codeElement.codeElement:addField(vy)
+    e.codeElement.codeElement:addField(vx, 1)
+    e.codeElement.codeElement:addField(vy, 2)
+
+    root.codeElement.codeElement:addCodeElement(e)
 end
 
 do
@@ -115,7 +124,9 @@ do
     local e = ecs.entity(world)
     :give("codeElement", CodeElements["function"]("fib", structNumber))
 
-    e.codeElement.codeElement:addArgument(n)
+    e.codeElement.codeElement:addArgument(n, 1)
+
+    root.codeElement.codeElement:addCodeElement(e)
 end
 
 do
@@ -128,8 +139,10 @@ do
     local e = ecs.entity(world)
     :give("codeElement", CodeElements["function"]("sum", structNumber))
 
-    e.codeElement.codeElement:addArgument(a)
-    e.codeElement.codeElement:addArgument(b)
+    e.codeElement.codeElement:addArgument(a, 1)
+    e.codeElement.codeElement:addArgument(b, 2)
+
+    root.codeElement.codeElement:addCodeElement(e)
 end
 
 do
@@ -140,6 +153,8 @@ do
     :give("codeElement", CodeElements["function"]("print name", structNumber))
 
     e.codeElement.codeElement:addArgument(structName)
+
+    root.codeElement.codeElement:addCodeElement(e)
 end
 
 
@@ -236,6 +251,11 @@ function love.keypressed(key)
         oldBackgroundColor = backgroundColor
         backgroundColor = Themes.current.colors.background
         return;
+    end
+    if (key == "4") then
+        world.singletons.doInsertionPoint = not world.singletons.doInsertionPoint
+        world:emit("themeChanged")
+        return
     end
 
     if (key == "6") then

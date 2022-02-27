@@ -1,3 +1,5 @@
+local CodeElements = require("src.codeElements")
+
 local TextElementEditor = ecs.system({
     pool = {"textElement", "selected", "selectable"},
 })
@@ -21,6 +23,28 @@ function TextElementEditor:textinput(t)
 end
 
 function TextElementEditor:keypressed(key)
+    if (key == "return") then
+        for _, e in ipairs(self.pool) do
+            local codeElement = e.selectable.codeElement.codeElement.codeElement
+
+            if (love.keyboard.isDown("lctrl")) then
+                local parent = e.selectable.codeElement.parent
+
+                local new = ecs.entity(self:getWorld())
+                :give("codeElement", CodeElements.new())
+
+                parent:addCodeElement(new, parent:indexOfCodeElement(e.selectable.codeElement))
+
+            elseif (love.keyboard.isDown("lshift")) then
+                print("Insert before")
+            else
+                print("Insert inside")
+            end
+        end
+
+        return
+    end
+
     if (key == "backspace") then
         for _, e in ipairs(self.pool) do
             local codeElement = e.selectable.codeElement.codeElement.codeElement

@@ -1,5 +1,5 @@
 local Cursor = ecs.system({
-    selected = {"textElement", "selected", "selectable"},
+    selected = {"textElement", "position", "selected", "selectable"},
 })
 
 local function linear(t, b, c, d) return c * t / d + b end
@@ -14,15 +14,15 @@ function Cursor:draw()
     love.graphics.setFont(font)
 
     for _, e in ipairs(self.selected) do
-        local x = e.textElement.position.x
-        local y = e.textElement.position.y
+        local x = e.position.x
+        local y = e.position.y
 
-        if (e:has("animateChangeTextElement")) then
-            local oldX = e.animateChangeTextElement.oldPosition.x
-            local oldY = e.animateChangeTextElement.oldPosition.y
+        if (e:has("animatePosition")) then
+            local oldX = e.animatePosition.x
+            local oldY = e.animatePosition.y
 
-            local time = e.animateChangeTextElement.animationTime
-            local duration = e.animateChangeTextElement.animationDuration
+            local time = e.animatePosition.animationTime
+            local duration = e.animatePosition.animationDuration
 
             local clampedTime = math.min(time, duration)
 

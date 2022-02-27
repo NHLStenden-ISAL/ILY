@@ -1,5 +1,3 @@
-ecs.component("textElement", function(e, content, position, color)
+ecs.component("textElement", function(e, content)
     e.content = content
-    e.position = position
-    e.color = color
 end)

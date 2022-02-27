@@ -5,7 +5,7 @@ local Locale = require("src.locale")
 
 local TextTransformer = ecs.system({
     pool = {"codeElement"},
-    old = {"textElement"}
+    old = {"textElement", "position"},
 })
 
 function TextTransformer:init()
@@ -50,16 +50,12 @@ function TextTransformer:beginScope(entity)
     end
 
     self.depth = self.depth + 1
-
-    return previous
 end
 
 function TextTransformer:endScope(previous)
     self.depth = self.depth - 1
 
-    if (previous) then
-        self.previousIdentifierScope[#self.previousIdentifierScope] = nil
-    end
+    self.previousIdentifierScope[#self.previousIdentifierScope] = nil
     self.currentIdentifierScope[#self.currentIdentifierScope] = nil
 end
 
@@ -69,12 +65,24 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
     if (previousScope and previousScope[rawIdentifier]) then
         local e = previousScope[rawIdentifier]
 
-        if (e.textElement.content ~= text or e.textElement.position.x ~= self.cursor.x or e.textElement.position.y ~= self.cursor.y or e.textElement.color ~= color) then
-            e:give("animateChangeTextElement", e.textElement.content, e.textElement.position, e.textElement.color, 0.2)
-
+        if (e.textElement.content ~= text) then
             e.textElement.content = text
-            e.textElement.position = {x = self.cursor.x, y = self.cursor.y}
-            e.textElement.color = color
+        end
+
+        if (e.position.x ~= self.cursor.x or e.position.y ~= self.cursor.y) then
+            e:give("animatePosition", e.position.x, e.position.y, 0.2)
+
+            e.position.x = self.cursor.x
+            e.position.y = self.cursor.y
+        end
+
+        if (e.color.r ~= color[1] or e.color.g ~= color[2] or e.color.b ~= color[3] or e.color.a ~= color[4]) then
+            e:give("animateColor", e.color.r, e.color.g, e.color.b, e.color.a, 0.2)
+
+            e.color.r = color[1]
+            e.color.g = color[2]
+            e.color.b = color[3]
+            e.color.a = color[4]
         end
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
@@ -101,11 +109,11 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
             e:remove("selectable")
         end
     else
-        local position = {x = self.cursor.x, y = self.cursor.y}
-
         local e = ecs.entity()
-        e:give("textElement", text, position, color)
-        e:give("animateCreateTextElement", 0.2)
+        :give("textElement", text)
+        :give("color", color[1], color[2], color[3], color[4])
+        :give("position", self.cursor.x, self.cursor.y)
+        :give("animateColor", color[1], color[2], color[3], 0, 0.2)
 
         self:getWorld():addEntity(e)
 
@@ -202,14 +210,13 @@ function TextTransformer:transformDataToText()
     self:getWorld().singletons.animationTimer.timer = 0
     self:reset()
 
+    self.textTransformer.doInsertionPoint = self:getWorld().singletons.doInsertionPoint
     self.textTransformer:transform(self.pool)
 
     for e, _ in pairs(self.toDelete) do
         e:destroy()
     end
     self.toDelete = {}
-
-    self:getWorld().singletons.textOutput = self.output
 end
 
 function TextTransformer:keypressed(key)

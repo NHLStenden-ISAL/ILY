@@ -13,32 +13,38 @@ function TestTextTransformer:initialize(control)
 end
 
 function TestTextTransformer:transform(codeElements)
-    local colors = Themes.current.colors
-
-    self.control:print("header", "[Test Transformer]", colors.syntax.text)
-    self.control:newLine()
-    self.control:newLine()
-
     for _, entity in ipairs(codeElements) do
-        if (entity.codeElement.codeElement.root) then
+        if (entity.codeElement.codeElement.isRoot) then
             self:transformEntity(entity, true)
-            self.control:newLine()
         end
     end
 end
 
 function TestTextTransformer:transformEntity(entity, scoped, ...)
-    local previous = nil
     if (scoped) then
-        previous = self.control:beginScope(entity)
+        self.control:beginScope(entity)
     end
 
 ---@diagnostic disable-next-line: redundant-parameter
     self[entity.codeElement.codeElement.class](self, entity, entity.codeElement.codeElement, ...)
 
     if (scoped) then
-        self.control:endScope(previous)
+        self.control:endScope()
     end
+end
+
+TestTextTransformer[CodeElements.root] = function(self, entity, root)
+    for _, codeElement in ipairs(root.codeElements) do
+        self:transformEntity(codeElement, true)
+        self.control:newLine()
+    end
+end
+
+TestTextTransformer[CodeElements.new] = function(self, entity, new)
+    local colors = Themes.current.colors
+
+    self.control:print("empty", "lol", colors.syntax.text)
+    self.control:newLine()
 end
 
 TestTextTransformer[CodeElements.struct] = function(self, entity, struct)
@@ -157,6 +163,7 @@ TestTextTransformer[CodeElements["function"]] = function(self, entity, func)
     self.control:space()
     self.control:print("identifier", func.identifier, colors.syntax.identifier, entity)
     self.control:print("parenthesesOpen", "(", colors.syntax.text)
+
     for i, field in ipairs(func.arguments) do
         self:transformEntity(field, true, i == #func.arguments)
     end
@@ -185,6 +192,7 @@ TestTextTransformer[CodeElements["functionArgument"]] = function(self, entity, f
     self.control:space()
     self.control:print("typeIndicator", ":", colors.syntax.text)
     self.control:space()
+
     self.control:print("type", functionArgument.type.codeElement.codeElement.identifier, colors.syntax.type, functionArgument.type)
 
     if (not last) then
