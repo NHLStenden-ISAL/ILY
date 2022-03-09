@@ -1,7 +1,6 @@
-local BaseTextTransformer = require("src.textTransformers.baseTextTransformer")
 local TestTextTransformer = require("src.textTransformers.testTextTransformer")
 
-local Locale = require("src.locale")
+-- local Locale = require("src.locale")
 
 local TextTransformer = ECS.system({
     pool = {"codeElement"},
