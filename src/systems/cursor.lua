@@ -1,4 +1,4 @@
-local Cursor = ecs.system({
+local Cursor = ECS.system({
     selected = {"textElement", "selected", "selectable"},
     selectable = {"textElement", "selectable"},
 })

@@ -1,93 +1,60 @@
-local launch_type = arg[2]
-if launch_type == "test" or launch_type == "debug" then
-    lldebugger = require "lldebugger"
+require("src.debugHandler")
 
-    if launch_type == "debug" then
-        lldebugger.start()
-    end
-end
-
-local love_errorhandler = love.errhand
-
-function love.errorhandler(msg)
-    if lldebugger then
-        lldebugger.start()
-        error(msg, 2)
-    else
-        return love_errorhandler(msg)
-    end
-end
-
-local fontSmall = love.graphics.newFont("assets/FiraCode-Regular.ttf", 12)
-
-local Themes = require("src.themes")
-
-local function linear(t, b, c, d) return c * t / d + b end
-local oldBackgroundColor = Themes.current.colors.background
-local backgroundColor = oldBackgroundColor
-
-love.graphics.setBackgroundColor(backgroundColor)
 love.keyboard.setKeyRepeat(true)
 
-ecs = require("lib.concord")
+local Themes = require("src.themes")
+ECS = require("lib.concord")
 
-local systems = {}
-ecs.utils.loadNamespace("src/components")
-ecs.utils.loadNamespace("src/systems", systems)
+local Systems = {}
+ECS.utils.loadNamespace("src/components")
+ECS.utils.loadNamespace("src/systems", Systems)
 
-local world = ecs.world()
-world.singletons = {}
+local World = ECS.world()
+World.singletons = {}
+World.singletons.indentDepth = 40
 
-world.singletons.indentDepth = 40
-world.singletons.scrollVelocity = 0
-world.singletons.camera = {
-    x = 350,
-    y = 50,
-    scale = 15,
-}
-world.singletons.textOutput = {}
-world.singletons.selectors = {}
-world.singletons.animationTimer = {
-    timer = 0
-}
-world.singletons.textNavigationMode = "global"
-world.singletons.doInsertionPoint = false
+World:addSystems(
+    Systems.backgroundRenderer,
 
-world:addSystems(
-    systems.cameraController,
-    systems.textElementEditor,
-    systems.textTransformer,
-    systems.textRenderer,
-    systems.animateTextElementStepper,
-    systems.cursor,
-    systems.cursorRenderer
+    Systems.cameraController,
+    Systems.textElementEditor,
+    Systems.textTransformer,
+    Systems.textRenderer,
+
+    Systems.animatePositionStepper,
+    Systems.animateColorStepper,
+
+    Systems.cursor,
+    Systems.cursorRenderer,
+
+    Systems.debugRenderer
 )
 
 local CodeElements = require("src.codeElements")
 
-local root = ecs.entity(world)
+local root = ECS.entity(World)
 :give("codeElement", CodeElements.root())
 
-local structNumber = ecs.entity(world)
+local structNumber = ECS.entity(World)
 :give("codeElement", CodeElements.struct("number"))
 root.codeElement.codeElement:addCodeElement(structNumber)
 
-local structBoolean = ecs.entity(world)
+local structBoolean = ECS.entity(World)
 :give("codeElement", CodeElements.struct("boolean"))
 root.codeElement.codeElement:addCodeElement(structBoolean)
 
-local structString = ecs.entity(world)
+local structString = ECS.entity(World)
 :give("codeElement", CodeElements.struct("string"))
 root.codeElement.codeElement:addCodeElement(structString)
 
 do
-    local x = ecs.entity(world)
+    local x = ECS.entity(World)
     :give("codeElement", CodeElements.componentField("x", structNumber))
 
-    local y = ecs.entity(world)
+    local y = ECS.entity(World)
     :give("codeElement", CodeElements.componentField("y", structNumber))
 
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements.component("position"))
 
     e.codeElement.codeElement:addField(x, 1)
@@ -97,13 +64,13 @@ do
 end
 
 do
-    local vx = ecs.entity(world)
+    local vx = ECS.entity(World)
     :give("codeElement", CodeElements.componentField("vx", structNumber))
 
-    local vy = ecs.entity(world)
+    local vy = ECS.entity(World)
     :give("codeElement", CodeElements.componentField("vy", structNumber))
 
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements.component("velocity"))
 
     e.codeElement.codeElement:addField(vx, 1)
@@ -113,15 +80,15 @@ do
 end
 
 do
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements.component("controllable"))
 end
 
 do
-    local n = ecs.entity(world)
+    local n = ECS.entity(World)
     :give("codeElement", CodeElements.functionArgument("n", structNumber))
 
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements["function"]("fib", structNumber))
 
     e.codeElement.codeElement:addArgument(n, 1)
@@ -130,13 +97,13 @@ do
 end
 
 do
-    local a = ecs.entity(world)
+    local a = ECS.entity(World)
     :give("codeElement", CodeElements.functionArgument("a", structNumber))
 
-    local b = ecs.entity(world)
+    local b = ECS.entity(World)
     :give("codeElement", CodeElements.functionArgument("b", structNumber))
 
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements["function"]("sum", structNumber))
 
     e.codeElement.codeElement:addArgument(a, 1)
@@ -146,10 +113,10 @@ do
 end
 
 do
-    local structName = ecs.entity(world)
+    local structName = ECS.entity(World)
     :give("codeElement", CodeElements.functionArgument("name", structString))
 
-    local e = ecs.entity(world)
+    local e = ECS.entity(World)
     :give("codeElement", CodeElements["function"]("print name", structNumber))
 
     e.codeElement.codeElement:addArgument(structName)
@@ -157,105 +124,42 @@ do
     root.codeElement.codeElement:addCodeElement(e)
 end
 
+local background = ECS.entity(World)
+:give("background")
+:give("color", {unpack(Themes.current.colors.background)})
+
+local camera = ECS.entity(World)
+:give("camera", 800, 15)
+:give("scale", 25)
+:give("position", 500, 50)
 
 function love.update(dt)
-    local friction = 10;
-    local ratio = 1 / (1 + (dt * friction));
-    world.singletons.scrollVelocity = world.singletons.scrollVelocity * ratio
-
-    world.singletons.indentDepth = math.max(0, world.singletons.indentDepth + world.singletons.scrollVelocity * dt)
-
-    world:emit("update", dt)
+    World:emit("update", dt)
 end
 
 function love.draw()
-    local t = world.singletons.animationTimer.timer
-    local maxt = 0.2
-    local r = linear(math.min(t, maxt), oldBackgroundColor[1], backgroundColor[1] - oldBackgroundColor[1], maxt)
-    local g = linear(math.min(t, maxt), oldBackgroundColor[2], backgroundColor[2] - oldBackgroundColor[2], maxt)
-    local b = linear(math.min(t, maxt), oldBackgroundColor[3], backgroundColor[3] - oldBackgroundColor[3], maxt)
-    local a = linear(math.min(t, maxt), oldBackgroundColor[4], backgroundColor[4] - oldBackgroundColor[4], maxt)
-
-    love.graphics.setBackgroundColor(r, g, b, a)
-
-    world:emit("draw")
-
-    local fps = love.timer.getFPS()
-    local averageDeltatime = love.timer.getAverageDelta()
-    local memoryUsage = collectgarbage("count")
-    local stats = love.graphics.getStats()
-    local name, version, vendor, device = love.graphics.getRendererInfo()
-
-    local info = string.format([[
-FPS: %u
-Deltatime: %.4f
-
-Memory usage: %u Kb
-
-Draw calls: %u
-Canvas switches: %u
-Texture memory: %u Kb
-Images: %u
-Canvases: %u
-Fonts: %u
-Shader switches: %u
-Draw calls batched: %u
-
-Renderer name: %s
-Renderer version: %s
-Graphics card vendor: %s
-Graphics card: %s
-    ]], 
-    fps,
-    averageDeltatime,
-    memoryUsage,
-    stats.drawcalls, 
-    stats.canvasswitches, 
-    stats.texturememory / 1024,
-    stats.images,
-    stats.canvases,
-    stats.fonts,
-    stats.shaderswitches,
-    stats.drawcallsbatched,
-    name,
-    version,
-    vendor,
-    device
-)
-
-
-    love.graphics.setColor(0.6, 0.6, 0.6, 1)
-    love.graphics.setFont(fontSmall)
-    love.graphics.print(info, 10, 10)
+    World:emit("draw")
 end
 
 function love.keypressed(key)
-    if (key == "1") then
-        Themes.current = Themes.standard
-        world:emit("themeChanged")
+    local themes = {"standard", "purpor", "oil"}
 
-        oldBackgroundColor = backgroundColor
-        backgroundColor = Themes.current.colors.background
-        return;
-    end
-    if (key == "2") then
-        Themes.current = Themes.purpor
-        world:emit("themeChanged")
-        oldBackgroundColor = backgroundColor
-        backgroundColor = Themes.current.colors.background
-        return;
-    end
-    if (key == "3") then
-        Themes.current = Themes.oil
-        world:emit("themeChanged")
-        oldBackgroundColor = backgroundColor
-        backgroundColor = Themes.current.colors.background
-        return;
-    end
-    if (key == "4") then
-        world.singletons.doInsertionPoint = not world.singletons.doInsertionPoint
-        world:emit("themeChanged")
-        return
+    for i, themeName in ipairs(themes) do
+        if (key == tostring(i)) then
+            Themes.current = Themes[themeName]
+
+            background:give(
+                "animateColor",
+                {unpack(background.color.value)},
+                Themes.current.colors.background,
+                0.2,
+                "linear"
+            )
+
+            World:emit("themeChanged")
+
+            return;
+        end
     end
 
     if (key == "6") then
@@ -263,19 +167,15 @@ function love.keypressed(key)
         return;
     end
 
-    world:emit("keypressed", key)
+    World:emit("keypressed", key)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    world:emit("mousemoved", x, y, dx, dy)
+    World:emit("mousemoved", x, y, dx, dy)
 end
 
 function love.wheelmoved(x, y)
-    if (love.keyboard.isDown("lshift")) then
-        world.singletons.scrollVelocity = world.singletons.scrollVelocity + y * 60
-    else
-        world:emit("wheelmoved", x, y)
-    end
+    World:emit("wheelmoved", x, y)
 end
 
 function love.textinput(t)
@@ -283,36 +183,5 @@ function love.textinput(t)
         return
     end
 
-    world:emit("textinput", t)
+    World:emit("textinput", t)
 end
-
-
-
--- local lines = love.filesystem.lines("src/locale.txt")
--- local t = {}
--- local data = ""
-
--- for line in lines do
---     table.insert(t, line)
--- end
-
--- data = data..("locale = {\r\n")
--- data = data..("\tukToUs={\r\n")
--- for i = 1, #t/2 do
---     local uk = t[i]
---     local us = t[i + #t/2]
-
---     data = data..("\t\t"..uk.."=".."\""..us.."\",\r\n")
--- end
--- data = data..("}\r\n")
--- data = data..("\tusToUk={\r\n")
--- for i = 1, #t/2 do
---     local uk = t[i]
---     local us = t[i + #t/2]
-
---     data = data..("\t\t"..us.."=".."\""..uk.."\",\r\n")
--- end
--- data = data..("}\r\n")
--- data = data..("}\r\n")
-
--- love.filesystem.write("output.lua", data)

@@ -1,3 +1,3 @@
-ecs.component("visible", function(e)
+ECS.component("visible", function(e)
 
 end)

@@ -1,4 +1,4 @@
-ecs.component("selected", function(e, preferredDepth, position)
+ECS.component("selected", function(e, preferredDepth, position)
     e.preferredDepth = preferredDepth
     e.position = {
         start = position,

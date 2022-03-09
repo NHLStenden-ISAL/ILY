@@ -3,7 +3,7 @@ local TestTextTransformer = require("src.textTransformers.testTextTransformer")
 
 local Locale = require("src.locale")
 
-local TextTransformer = ecs.system({
+local TextTransformer = ECS.system({
     pool = {"codeElement"},
     old = {"textElement", "position"},
 })
@@ -70,19 +70,11 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         end
 
         if (e.position.x ~= self.cursor.x or e.position.y ~= self.cursor.y) then
-            e:give("animatePosition", e.position.x, e.position.y, 0.2)
-
-            e.position.x = self.cursor.x
-            e.position.y = self.cursor.y
+            e:give("animatePosition", {x = e.position.x, y = e.position.y}, {x = self.cursor.x, y = self.cursor.y}, 0.2, "outCubic")
         end
 
-        if (e.color.r ~= color[1] or e.color.g ~= color[2] or e.color.b ~= color[3] or e.color.a ~= color[4]) then
-            e:give("animateColor", e.color.r, e.color.g, e.color.b, e.color.a, 0.2)
-
-            e.color.r = color[1]
-            e.color.g = color[2]
-            e.color.b = color[3]
-            e.color.a = color[4]
+        if (e.color.value[1] ~= color[1] or e.color.value[2] ~= color[2] or e.color.value[3] ~= color[3] or e.color.value[4] ~= color[4]) then
+            e:give("animateColor", {unpack(e.color.value)}, {unpack(color)}, 0.2, "linear")
         end
 
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
@@ -109,11 +101,14 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
             e:remove("selectable")
         end
     else
-        local e = ecs.entity()
+        local startColor = {color[1], color[2], color[3], 0}
+        local endColor = {color[1], color[2], color[3], color[4]}
+
+        local e = ECS.entity()
         :give("textElement", text)
-        :give("color", color[1], color[2], color[3], color[4])
+        :give("color")
         :give("position", self.cursor.x, self.cursor.y)
-        :give("animateColor", color[1], color[2], color[3], 0, 0.2)
+        :give("animateColor", startColor, endColor, 0.2, "linear")
 
         self:getWorld():addEntity(e)
 
@@ -198,8 +193,6 @@ function TextTransformer:codeElementChanged(e)
 end
 
 function TextTransformer:update(dt)
-    self:getWorld().singletons.animationTimer.timer = self:getWorld().singletons.animationTimer.timer + dt
-
     if (self.dirty) then
         self.dirty = false
         self:transformDataToText()
@@ -207,7 +200,6 @@ function TextTransformer:update(dt)
 end
 
 function TextTransformer:transformDataToText()
-    self:getWorld().singletons.animationTimer.timer = 0
     self:reset()
 
     self.textTransformer.doInsertionPoint = self:getWorld().singletons.doInsertionPoint

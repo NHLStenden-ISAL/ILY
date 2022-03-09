@@ -1,6 +1,6 @@
 local CodeElements = require("src.codeElements")
 
-local TextElementEditor = ecs.system({
+local TextElementEditor = ECS.system({
     pool = {"textElement", "selected", "selectable"},
 })
 
@@ -30,7 +30,7 @@ function TextElementEditor:keypressed(key)
             if (love.keyboard.isDown("lctrl")) then
                 local parent = e.selectable.codeElement.parent
 
-                local new = ecs.entity(self:getWorld())
+                local new = ECS.entity(self:getWorld())
                 :give("codeElement", CodeElements.new())
 
                 parent:addCodeElement(new, parent:indexOfCodeElement(e.selectable.codeElement))

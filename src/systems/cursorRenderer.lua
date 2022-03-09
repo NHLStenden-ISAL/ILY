@@ -1,4 +1,5 @@
-local Cursor = ecs.system({
+local Cursor = ECS.system({
+    camera = {"camera", "position"},
     selected = {"textElement", "position", "selected", "selectable"},
 })
 
@@ -7,8 +8,7 @@ local function outCubic(t, b, c, d) return c * (math.pow(t / d - 1, 3) + 1) + b 
 
 function Cursor:draw()
     love.graphics.push("all")
-    love.graphics.translate(self:getWorld().singletons.camera.x,
-                            self:getWorld().singletons.camera.y)
+    love.graphics.translate(self.camera[1].position.x, self.camera[1].position.y)
 
     local font = self:getWorld().singletons.font
     love.graphics.setFont(font)
@@ -16,19 +16,6 @@ function Cursor:draw()
     for _, e in ipairs(self.selected) do
         local x = e.position.x
         local y = e.position.y
-
-        if (e:has("animatePosition")) then
-            local oldX = e.animatePosition.x
-            local oldY = e.animatePosition.y
-
-            local time = e.animatePosition.animationTime
-            local duration = e.animatePosition.animationDuration
-
-            local clampedTime = math.min(time, duration)
-
-            x = outCubic(clampedTime, oldX, x - oldX, duration)
-            y = outCubic(clampedTime, oldY, y - oldY, duration)
-        end
 
         do -- Cursor 
             local x1 = x + font:getWidth(" ") * e.selected.position.start
