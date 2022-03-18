@@ -37,14 +37,6 @@ function Cursor:selectOther(from, to, preferOtherDepth, toEnd)
 end
 
 function Cursor:keypressed(key)
-    if (key == "tab") then
-        if (self:getWorld().singletons.textNavigationMode == "global") then
-            self:getWorld().singletons.textNavigationMode = "local"
-        else
-            self:getWorld().singletons.textNavigationMode = "global"
-        end
-    end
-
     for _, e in ipairs(self.selected) do
         if (love.keyboard.isDown("lctrl")) then
             if (key == "left") then

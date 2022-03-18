@@ -1,7 +1,5 @@
 local TestTextTransformer = require("src.textTransformers.testTextTransformer")
 
--- local Locale = require("src.locale")
-
 local TextTransformer = ECS.system({
     pool = {"codeElement"},
     old = {"textElement", "position"},
@@ -208,13 +206,6 @@ function TextTransformer:transformDataToText()
         e:destroy()
     end
     self.toDelete = {}
-end
-
-function TextTransformer:keypressed(key)
-    if (key == "tab") then
-        self.textTransformer.bracesOnNewLine = not self.textTransformer.bracesOnNewLine
-        self.dirty = true
-    end
 end
 
 return TextTransformer

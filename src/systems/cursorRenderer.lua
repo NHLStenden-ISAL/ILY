@@ -3,9 +3,6 @@ local Cursor = ECS.system({
     selected = {"textElement", "position", "selected", "selectable"},
 })
 
-local function linear(t, b, c, d) return c * t / d + b end
-local function outCubic(t, b, c, d) return c * (math.pow(t / d - 1, 3) + 1) + b end
-
 function Cursor:draw()
     love.graphics.push("all")
     love.graphics.translate(self.camera[1].position.x, self.camera[1].position.y)
@@ -17,7 +14,7 @@ function Cursor:draw()
         local x = e.position.x
         local y = e.position.y
 
-        do -- Cursor 
+        do
             local x1 = x + font:getWidth(" ") * e.selected.position.start
             local y1 = y + 2
             local x2 = x1
