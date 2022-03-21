@@ -159,9 +159,20 @@ end
 TestTextTransformer[CodeElements["function"]] = function(self, entity, func)
     local colors = Themes.current.colors
 
+    local action = {
+        location = "end",
+        key = "return",
+        action = function(world)
+            local e = ECS.entity(world)
+            :give("codeElement", CodeElements["function"]("temp"))
+
+            entity.parent:addCodeElement(e, 7)
+        end
+    }
+
     self.control:print("keywordFunction", "function", colors.syntax.keywordFunction)
     self.control:space()
-    self.control:print("identifier", func.identifier, colors.syntax.identifier, entity)
+    self.control:print("identifier", func.identifier, colors.syntax.identifier, entity, action)
     self.control:print("parenthesesOpen", "(", colors.syntax.text)
 
     for i, field in ipairs(func.arguments) do
@@ -171,7 +182,7 @@ TestTextTransformer[CodeElements["function"]] = function(self, entity, func)
     self.control:space()
     self.control:print("returnTypeIndicator", ":", colors.syntax.text)
     self.control:space()
-    self.control:print("type", func.returnType.codeElement.codeElement.identifier, colors.syntax.type, func.returnType)
+    self.control:print("type", func.returnType and func.returnType.codeElement.codeElement.identifier or "void", colors.syntax.type, func.returnType)
 
     if (self.bracesOnNewLine) then
         self.control:newLine()

@@ -23,6 +23,16 @@ function TextElementEditor:textinput(t)
 end
 
 function TextElementEditor:keypressed(key)
+    for _, e in ipairs(self.pool) do
+        local action = e.selectable.action
+
+        if (action) then
+            if (key == action.key) then
+                action.action(self:getWorld())
+            end
+        end
+    end
+
     if (key == "return") then
         for _, e in ipairs(self.pool) do
             local codeElement = e.selectable.codeElement.codeElement.codeElement

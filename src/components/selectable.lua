@@ -1,4 +1,4 @@
-ECS.component("selectable", function(e, codeElement, depth)
+ECS.component("selectable", function(e, codeElement, depth, action)
     e.codeElement = codeElement
     e.depth = depth
 
@@ -6,4 +6,6 @@ ECS.component("selectable", function(e, codeElement, depth)
     e.down = {}
     e.left = nil
     e.right = nil
+
+    e.action = action
 end)

@@ -56,7 +56,7 @@ function TextTransformer:endScope(previous)
     self.currentIdentifierScope[#self.currentIdentifierScope] = nil
 end
 
-function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement)
+function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement, action)
     local previousScope = self.previousIdentifierScope[#self.previousIdentifierScope]
 
     if (previousScope and previousScope[rawIdentifier]) then
@@ -78,7 +78,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         self.toDelete[e] = nil
 
         if (selectableCodeElement) then
-            e:give("selectable", selectableCodeElement, self.depth)
+            e:give("selectable", selectableCodeElement, self.depth, action)
 
             e.selectable.up = self.previousSelectables
             e.selectable.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
@@ -112,7 +112,7 @@ function TextTransformer:print(rawIdentifier, text, color, selectableCodeElement
         self.currentIdentifierScope[#self.currentIdentifierScope][rawIdentifier] = e
 
         if (selectableCodeElement) then
-            e:give("selectable", selectableCodeElement, self.depth)
+            e:give("selectable", selectableCodeElement, self.depth, action)
 
             e.selectable.up = self.previousSelectables
             e.selectable.left = #self.currentSelectables > 0 and self.currentSelectables[#self.currentSelectables] or nil
