@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v6.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v6.0": {
+      "ILY/1.0.0": {
+        "dependencies": {
+          "LoveSharp": "11.0.51"
+        },
+        "runtime": {
+          "ILY.dll": {}
+        }
+      },
+      "LoveSharp/11.0.51": {
+        "runtime": {
+          "lib/netstandard1.2/LoveSharp.dll": {
+            "assemblyVersion": "11.0.50.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ILY/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "LoveSharp/11.0.51": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qMze49JDC8ZtIfhyGNg7FFF2mxA7bIantGhUcm9Wi+TrDNUWqams4zIJPBy9Kh4Tihe0/3h494fjrj+7S83FgA==",
+      "path": "lovesharp/11.0.51",
+      "hashPath": "lovesharp.11.0.51.nupkg.sha512"
+    }
+  }
+}

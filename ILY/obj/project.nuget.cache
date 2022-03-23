@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "Zr3iprLjJ8HbHXjZjZvmDCHMGG74GBYkslq28CGqs6dnKaYDtTVOsKxUKuMhjnVWRvELXRVo0EhnRrrNI9Kolw==",
+  "success": true,
+  "projectFilePath": "/home/justin/Documents/ILY/ILY/ILY.csproj",
+  "expectedPackageFiles": [
+    "/home/justin/.nuget/packages/lovesharp/11.0.51/lovesharp.11.0.51.nupkg.sha512"
+  ],
+  "logs": []
+}
